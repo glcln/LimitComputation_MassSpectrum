@@ -1,0 +1,28 @@
+imax 1 
+jmax 1 
+kmax * 
+--------------- 
+shapes * * MyNewDataCards/datacards_shape_9fp10_Eta1/Gluino1800_2024.root $PROCESS_$CHANNEL $PROCESS_$CHANNEL_$SYSTEMATIC 
+--------------- 
+bin 	 Ch2024_Eta1 
+observation 	 -1 
+------------------------------ 
+bin 	 Ch2024_Eta1 	 Ch2024_Eta1 
+process 	 signal 	 background 
+process 	 0 	 1 
+rate 	 -1 	 -1 
+------------------------------ 
+lumi 	 lnN 	 1.014 	 - 
+C 	 shape 	 1.0 	 - 
+Fpix 	 shape 	 1.0 	 - 
+K 	 shape 	 1.0 	 - 
+PU 	 shape 	 1.0 	 - 
+TriggerSF 	 shape 	 1.0 	 - 
+eta 	 shape 	 - 	 1.0 
+fitIh 	 shape 	 - 	 1.0 
+fitMom 	 shape 	 - 	 1.0 
+ih 	 shape 	 - 	 1.0 
+mom 	 shape 	 - 	 1.0 
+nofit 	 shape 	 - 	 1.0 
+rateAll rateParam Ch2024_Eta1 background 1.0 
+Ch2024_Eta1 autoMCStats 10 

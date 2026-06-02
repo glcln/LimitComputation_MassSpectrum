@@ -1,0 +1,4 @@
+Signal_tauPrime1e-400-0x0_area_card_2018,Signal_tauPrime1e-800-0x0_area_card_2018,Signal_tauPrime1e-1000-0x0_area_card_2018,Signal_tauPrime1e-1400-0x0_area_card_2018,Signal_tauPrime1e-1800-0x0_area_card_2018,Signal_tauPrime1e-2200-0x0_area_card_2018,Signal_tauPrime1e-2600-0x0_area_card_2018
+400, 800, 1000, 1400, 1800, 2200, 2600
+1.361e-02, 5.697e-04, 1.638e-04, 1.869e-05, 2.641e-06, 4.175e-07, 7.282e-08
+1.361e-02, 5.697e-04, 1.638e-04, 1.869e-05, 2.641e-06, 4.175e-07, 7.282e-08

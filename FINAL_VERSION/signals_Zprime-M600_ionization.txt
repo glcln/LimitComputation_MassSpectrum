@@ -1,0 +1,4 @@
+Signal_tauPrime2e-600-ZPrime-3000-0x0_area_card_2018,Signal_tauPrime2e-600-ZPrime-4000-0x0_area_card_2018,Signal_tauPrime2e-600-ZPrime-5000-0x0_area_card_2018,Signal_tauPrime2e-600-ZPrime-6000-0x0_area_card_2018,Signal_tauPrime2e-600-ZPrime-7000-0x0_area_card_2018
+3000, 4000, 5000, 6000, 7000
+0.000451036, 4.7749e-5, 5.34376e-6, 5.45292e-7, 5.2e-8
+0.000451036, 4.7749e-5, 5.34376e-6, 5.45292e-7, 5.2e-8

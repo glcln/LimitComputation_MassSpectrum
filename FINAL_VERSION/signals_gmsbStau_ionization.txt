@@ -1,0 +1,4 @@
+Signal_gmsbStau-247-0x0_area_card_2018,Signal_gmsbStau-308-0x0_area_card_2018,Signal_gmsbStau-432-0x0_area_card_2018,Signal_gmsbStau-557-0x0_area_card_2018,Signal_gmsbStau-651-0x0_area_card_2018,Signal_gmsbStau-745-0x0_area_card_2018,Signal_gmsbStau-871-0x0_area_card_2018,Signal_gmsbStau-1029-0x0_area_card_2018
+247,308, 432, 557, 651, 745, 871, 1029
+8.8E-02,2.5E-02,3.9E-03,1E-03,4.1E-04,1.9E-04,6.9E-05, 2.2E-05
+8.8E-02,2.5E-02,3.9E-03,1.9E-03,4.1E-04,1.9E-04,6.9E-05, 2.2E-05

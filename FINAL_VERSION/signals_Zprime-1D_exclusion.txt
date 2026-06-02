@@ -1,0 +1,4 @@
+Signal_tauPrime2e-1000-ZPrime-3000-0x0_area, Signal_tauPrime2e-1000-ZPrime-4000-0x0_area, Signal_tauPrime2e-1000-ZPrime-5000-0x0_area, Signal_tauPrime2e-1000-ZPrime-6000-0x0_area, Signal_tauPrime2e-1000-ZPrime-7000-0x0_area
+3000, 4000, 5000, 6000, 7000
+0.00147992, 0.000159354, 1.76729e-5, 1.80017e-6, 1.9E-7
+0.00147992, 0.000159354, 1.76729e-5, 1.80017e-6, 1.9E-7

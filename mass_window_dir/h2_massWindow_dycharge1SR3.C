@@ -1,0 +1,72 @@
+void h2_massWindow_dycharge1SR3()
+{
+//=========Macro generated from canvas: c1_n3/c1_n3
+//=========  (Wed Dec 11 11:07:09 2024) by ROOT version 6.22/09
+   TCanvas *c1_n3 = new TCanvas("c1_n3", "c1_n3",0,0,700,500);
+   gStyle->SetOptStat(0);
+   gStyle->SetOptTitle(0);
+   c1_n3->SetHighLightColor(2);
+   c1_n3->Range(-607.5949,-810.1265,3189.873,4253.165);
+   c1_n3->SetFillColor(0);
+   c1_n3->SetBorderMode(0);
+   c1_n3->SetBorderSize(2);
+   c1_n3->SetLeftMargin(0.16);
+   c1_n3->SetRightMargin(0.05);
+   c1_n3->SetTopMargin(0.05);
+   c1_n3->SetBottomMargin(0.16);
+   c1_n3->SetFrameLineWidth(2);
+   c1_n3->SetFrameBorderMode(0);
+   c1_n3->SetFrameLineWidth(2);
+   c1_n3->SetFrameBorderMode(0);
+   
+   TH2F *hdycharge1__3 = new TH2F("hdycharge1__3","",120,0,3000,400,0,4000);
+   hdycharge1__3->SetStats(0);
+   hdycharge1__3->SetLineWidth(2);
+   hdycharge1__3->SetMarkerStyle(20);
+   hdycharge1__3->SetMarkerSize(0.9);
+   hdycharge1__3->GetXaxis()->SetTitle("Target Mass [GeV] DY charge 1e");
+   hdycharge1__3->GetXaxis()->SetLabelFont(42);
+   hdycharge1__3->GetXaxis()->SetLabelOffset(0.015);
+   hdycharge1__3->GetXaxis()->SetLabelSize(0.05);
+   hdycharge1__3->GetXaxis()->SetTitleSize(0.04);
+   hdycharge1__3->GetXaxis()->SetTitleOffset(1.5);
+   hdycharge1__3->GetXaxis()->SetTitleFont(42);
+   hdycharge1__3->GetYaxis()->SetTitle("Mass Window [GeV]");
+   hdycharge1__3->GetYaxis()->SetLabelFont(42);
+   hdycharge1__3->GetYaxis()->SetLabelOffset(0.015);
+   hdycharge1__3->GetYaxis()->SetLabelSize(0.05);
+   hdycharge1__3->GetYaxis()->SetTitleSize(0.04);
+   hdycharge1__3->GetYaxis()->SetTickLength(0.02);
+   hdycharge1__3->GetYaxis()->SetTitleOffset(2);
+   hdycharge1__3->GetYaxis()->SetTitleFont(42);
+   hdycharge1__3->GetZaxis()->SetTitle("[a.u.]");
+   hdycharge1__3->GetZaxis()->SetLabelFont(42);
+   hdycharge1__3->GetZaxis()->SetLabelOffset(0.015);
+   hdycharge1__3->GetZaxis()->SetLabelSize(0.05);
+   hdycharge1__3->GetZaxis()->SetTitleSize(0.065);
+   hdycharge1__3->GetZaxis()->SetTitleOffset(1.1);
+   hdycharge1__3->GetZaxis()->SetTitleFont(42);
+   hdycharge1__3->Draw("col");
+   TLatex *   tex = new TLatex(0.95,0.9575,"");
+tex->SetNDC();
+   tex->SetTextAlign(31);
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.03);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.16,0.9575,"CMS");
+tex->SetNDC();
+   tex->SetTextFont(61);
+   tex->SetTextSize(0.0375);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.3,0.96,"Internal");
+tex->SetNDC();
+   tex->SetTextFont(52);
+   tex->SetTextSize(0.0285);
+   tex->SetLineWidth(2);
+   tex->Draw();
+   c1_n3->Modified();
+   c1_n3->cd();
+   c1_n3->SetSelected(c1_n3);
+}

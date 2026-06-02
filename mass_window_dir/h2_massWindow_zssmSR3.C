@@ -1,0 +1,72 @@
+void h2_massWindow_zssmSR3()
+{
+//=========Macro generated from canvas: c1_n5/c1_n5
+//=========  (Wed Dec 11 11:07:09 2024) by ROOT version 6.22/09
+   TCanvas *c1_n5 = new TCanvas("c1_n5", "c1_n5",0,0,700,500);
+   gStyle->SetOptStat(0);
+   gStyle->SetOptTitle(0);
+   c1_n5->SetHighLightColor(2);
+   c1_n5->Range(-1620.253,-417.7214,8506.329,8443.038);
+   c1_n5->SetFillColor(0);
+   c1_n5->SetBorderMode(0);
+   c1_n5->SetBorderSize(2);
+   c1_n5->SetLeftMargin(0.16);
+   c1_n5->SetRightMargin(0.05);
+   c1_n5->SetTopMargin(0.05);
+   c1_n5->SetBottomMargin(0.16);
+   c1_n5->SetFrameLineWidth(2);
+   c1_n5->SetFrameBorderMode(0);
+   c1_n5->SetFrameLineWidth(2);
+   c1_n5->SetFrameBorderMode(0);
+   
+   TH2F *hZprimeSSM__5 = new TH2F("hZprimeSSM__5","",300,0,8000,700,1000,8000);
+   hZprimeSSM__5->SetStats(0);
+   hZprimeSSM__5->SetLineWidth(2);
+   hZprimeSSM__5->SetMarkerStyle(20);
+   hZprimeSSM__5->SetMarkerSize(0.9);
+   hZprimeSSM__5->GetXaxis()->SetTitle("Target Mass [GeV] Z prime SSM");
+   hZprimeSSM__5->GetXaxis()->SetLabelFont(42);
+   hZprimeSSM__5->GetXaxis()->SetLabelOffset(0.015);
+   hZprimeSSM__5->GetXaxis()->SetLabelSize(0.05);
+   hZprimeSSM__5->GetXaxis()->SetTitleSize(0.04);
+   hZprimeSSM__5->GetXaxis()->SetTitleOffset(1.5);
+   hZprimeSSM__5->GetXaxis()->SetTitleFont(42);
+   hZprimeSSM__5->GetYaxis()->SetTitle("Mass Window [GeV]");
+   hZprimeSSM__5->GetYaxis()->SetLabelFont(42);
+   hZprimeSSM__5->GetYaxis()->SetLabelOffset(0.015);
+   hZprimeSSM__5->GetYaxis()->SetLabelSize(0.05);
+   hZprimeSSM__5->GetYaxis()->SetTitleSize(0.04);
+   hZprimeSSM__5->GetYaxis()->SetTickLength(0.02);
+   hZprimeSSM__5->GetYaxis()->SetTitleOffset(2);
+   hZprimeSSM__5->GetYaxis()->SetTitleFont(42);
+   hZprimeSSM__5->GetZaxis()->SetTitle("[a.u.]");
+   hZprimeSSM__5->GetZaxis()->SetLabelFont(42);
+   hZprimeSSM__5->GetZaxis()->SetLabelOffset(0.015);
+   hZprimeSSM__5->GetZaxis()->SetLabelSize(0.05);
+   hZprimeSSM__5->GetZaxis()->SetTitleSize(0.065);
+   hZprimeSSM__5->GetZaxis()->SetTitleOffset(1.1);
+   hZprimeSSM__5->GetZaxis()->SetTitleFont(42);
+   hZprimeSSM__5->Draw("col");
+   TLatex *   tex = new TLatex(0.95,0.9575,"");
+tex->SetNDC();
+   tex->SetTextAlign(31);
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.03);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.16,0.9575,"CMS");
+tex->SetNDC();
+   tex->SetTextFont(61);
+   tex->SetTextSize(0.0375);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.3,0.96,"Internal");
+tex->SetNDC();
+   tex->SetTextFont(52);
+   tex->SetTextSize(0.0285);
+   tex->SetLineWidth(2);
+   tex->Draw();
+   c1_n5->Modified();
+   c1_n5->cd();
+   c1_n5->SetSelected(c1_n5);
+}

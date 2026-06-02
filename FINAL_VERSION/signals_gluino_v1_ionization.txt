@@ -1,0 +1,5 @@
+Signal_gluino-1000-0x0_area_card_2018,Signal_gluino-1400-0x0_area_card_2018,Signal_gluino-1600-0x0_area_card_2018,Signal_gluino-1800-0x0_area_card_2018,Signal_gluino-2000-0x0_area_card_2018,Signal_gluino-2200-0x0_area_card_2018,Signal_gluino-2400-0x0_area_card_2018,Signal_gluino-2600-0x0_area_card_2018
+1000,  1400,  1600,  1800,  2000,  2200,  2400,  2600
+0.385,  0.0284, 0.00887, 0.00293, 0.00101, 0.000356, 0.000128, 0.0000462
+0.385,  0.0284, 0.00887, 0.00293, 0.00101, 0.000356, 0.000128, 0.0000462
+~
