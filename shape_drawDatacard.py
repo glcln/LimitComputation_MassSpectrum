@@ -17,6 +17,17 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import ROOT
 
+# Police LaTeX (Computer Modern) sans dépendre d'une installation LaTeX
+plt.rcParams.update({
+    'font.family': 'serif',
+    'font.serif': ['cmr10', 'Computer Modern Roman', 'DejaVu Serif'],
+    'mathtext.fontset': 'cm',
+    'axes.formatter.use_mathtext': True,   # évite le warning cmr10 sur le signe moins
+})
+
+import warnings
+warnings.filterwarnings("ignore", message="The value of the smallest subnormal")
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -45,6 +56,7 @@ onlyEta1 = options.onlyEta1
 # Chemins  —  à adapter si nécessaire
 # ---------------------------------------------------------------------------
 regionBckg = '9fp10'
+optionlabel = ''#'etaAbs_etaRebinPerso_1oPRebinBig_Oldfit_EtaCategory'
 
 # Meme etiquette de dossier que les scripts de generation et de run
 if splitEta:
@@ -57,8 +69,9 @@ else:
     etaLabel   = 'Eta2p4'
     etaDisplay = r'$|\eta|<2.4$'
 
-odir    = 'MyNewDataCards/limit_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "")
-outPlot = os.path.join(odir, 'limits_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "") + '.pdf')
+odir = 'MyNewDataCards/limit_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "") + '_' + optionlabel
+outPlot = os.path.join(odir, 'limits_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "") + '_' + optionlabel + '.pdf')
+
 
 # Masse en GeV → sera convertie en TeV pour l'axe X
 samples = [

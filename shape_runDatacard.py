@@ -4,14 +4,14 @@ import sys
 
 # Lancer la commande:
 
-# FullTracker + shape + asymptotique: python run_datacard.py
-# Séparation Eta1/Eta1_2p4 + shape + asymptotique: python run_datacard.py --splitEta
+# FullTracker + shape + asymptotique: py shape_runDatacard.py
+# Séparation Eta1/Eta1_2p4 + shape + asymptotique: py shape_runDatacard.py --splitEta
 
-# Cut and count: python run_datacard.py --cac (--splitEta)
+# Cut and count: py shape_runDatacard.py --cac (--splitEta)
 
-# Idem mais en CLS: python run_datacard.py -l CLS (--splitEta)
+# Idem mais en CLS: py shape_runDatacard.py -l CLS (--splitEta)
 
-# Calculer la significance: python run_datacard.py (--splitEta) -s
+# Calculer la significance: py shape_runDatacard.py (--splitEta) -s
 
 
 
@@ -50,6 +50,8 @@ if __name__ == '__main__':
 
     # Doit correspondre aux parametres du script de generation des datacards
     regionBckg = '9fp10'
+    optionlabel = ''#'etaAbs_etaRebinPerso_1oPRebinBig_Oldfit_EtaCategory'
+    
 
     # Meme logique d'etiquette que dans le script de generation
     if splitEta:
@@ -59,8 +61,8 @@ if __name__ == '__main__':
     else:
         etaLabel = 'Eta2p4'
 
-    idir = 'MyNewDataCards/datacards_shape_{}_{}'.format(regionBckg, etaLabel)
-    odir = 'MyNewDataCards/limit_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "")
+    idir = 'MyNewDataCards/datacards_shape_{}_{}_{}'.format(regionBckg, etaLabel, optionlabel)
+    odir = 'MyNewDataCards/limit_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "") + '_' + optionlabel
     if options.limits == "CLS":
         odir += "_CLS"
 

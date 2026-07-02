@@ -143,6 +143,21 @@ def build_fpathPred(idirData, versionData, eta):
         'fitmomDown' : base + '_rebinEta4_rebinIh4_rebinP2_fitPDown_EtaReweighting' + end + '.root',
         'nofit'      : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + '_' + eta + '_NoFit' + '.root',
     }
+    '''fpathPred = {
+        'obs'        : base + '_rebinEta4_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
+        'nominal'    : base + '_rebinEta4_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
+        'etaUp'      : base + '_rebinEta2_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
+        'etaDown'    : base + '_rebinEta8_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
+        'ihUp'       : base + '_rebinEta4_rebinIh2_rebinP4_EtaReweighting' + end + '.root',
+        'ihDown'     : base + '_rebinEta4_rebinIh8_rebinP4_EtaReweighting' + end + '.root',
+        'momUp'      : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
+        'momDown'    : base + '_rebinEta4_rebinIh4_rebinP8_EtaReweighting' + end + '.root',
+        'fitihUp'    : base + '_rebinEta4_rebinIh4_rebinP4_fitIhUp_EtaReweighting' + end + '.root',
+        'fitihDown'  : base + '_rebinEta4_rebinIh4_rebinP4_fitIhDown_EtaReweighting' + end + '.root',
+        'fitmomUp'   : base + '_rebinEta4_rebinIh4_rebinP4_fitPUp_EtaReweighting' + end + '.root',
+        'fitmomDown' : base + '_rebinEta4_rebinIh4_rebinP4_fitPDown_EtaReweighting' + end + '.root',
+        #'nofit'      : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + '_' + eta + '_NoFit' + '.root',
+    }'''
     return fpathPred
 
 
@@ -477,10 +492,14 @@ def MakeDatacard_Shape(outDataCardsDir, modelName, rootFileName, categories,
 if __name__ == '__main__':
 
     # --- SETUP ---
-    idirData    = '/opt/sbg/cms/safe1/cms/gcoulon/CMSSW_15_0_13_patch1/src/JetMET2024_V12p24/'
     versionData = '12p24'
     regionBckg  = '9fp10'
     channel     = 'Ch2024'
+    
+    etalabeldir = 'Eta2p4'
+    optionlabel = ''
+    idirData    = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/macros/DataMET_2024_V' + versionData + '__' + regionBckg + '_' + optionlabel + '/' + etalabeldir + '/'
+    
 
     # --- Regions eta selon le booleen ---
     if splitEta:
@@ -493,7 +512,7 @@ if __name__ == '__main__':
         etaRegions = ['Eta2p4']              # tracker complet |eta|<2.4
         etaLabel   = 'Eta2p4'
 
-    outDataCardsDir = "MyNewDataCards/datacards_shape_{}_{}/".format(regionBckg, etaLabel)
+    outDataCardsDir = "MyNewDataCards/datacards_shape_{}_{}_{}/".format(regionBckg, etaLabel, optionlabel)
     os.makedirs(outDataCardsDir, exist_ok=True)
 
     if isCutAndCount:
@@ -508,7 +527,7 @@ if __name__ == '__main__':
         print("Full tracker selected -> Eta2p4")
 
     # --- SIGNAL ---
-    baseSignal = '/opt/sbg/cms/safe1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/output/Gluino_V19/'
+    baseSignal = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/output/Gluino_V19/'
     fpath = {
         'Gluino1100_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1100_V19p3_weighted.root',
         'Gluino1200_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1200_V19p3_weighted.root',
