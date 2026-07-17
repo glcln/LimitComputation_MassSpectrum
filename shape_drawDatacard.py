@@ -55,12 +55,13 @@ onlyEta1 = options.onlyEta1
 # ---------------------------------------------------------------------------
 # Chemins  —  à adapter si nécessaire
 # ---------------------------------------------------------------------------
-regionBckg = '9fp10'
-optionlabel = ''#'etaAbs_etaRebinPerso_1oPRebinBig_Oldfit_EtaCategory'
+regionBckg  = '9fp10'
+optionlabel = 'etaRebinPerso_Oldfit__PUppiMETcut'
+etalabeldir = 'Eta1_2p4'
 
 # Meme etiquette de dossier que les scripts de generation et de run
 if splitEta:
-    etaLabel   = 'split_Eta1_Eta1_2p4'
+    etaLabel   = 'split_Eta1_' + etalabeldir
     etaDisplay = r'$|\eta|<1$ + $1<|\eta|<2.4$'   # joli libelle pour l'annotation
 elif onlyEta1:
     etaLabel   = 'Eta1'
@@ -103,6 +104,7 @@ theory_xsec = {
     2400: (2.627E-04, 0.4536),
     2600: (1.089E-04, 0.6161),
 }
+
 
 # ---------------------------------------------------------------------------
 # Lecture des fichiers ROOT combine

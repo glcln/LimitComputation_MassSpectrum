@@ -1,0 +1,31 @@
+imax 2 
+jmax 1 
+kmax * 
+--------------- 
+shapes * * MyNewDataCards/datacards_shape_9fp10_split_Eta1_Eta1p2_2p4_Ih3p2_etaRebinPerso_Oldfit__PUppiMETcut__IhCuts/Gluino1400_2024.root $PROCESS_$CHANNEL $PROCESS_$CHANNEL_$SYSTEMATIC 
+--------------- 
+bin 	 Ch2024_Eta1 	 Ch2024_Eta1p2_2p4_Ih3p2 
+observation 	 -1 	 -1 
+------------------------------ 
+bin 	 Ch2024_Eta1 	 Ch2024_Eta1 	 Ch2024_Eta1p2_2p4_Ih3p2 	 Ch2024_Eta1p2_2p4_Ih3p2 
+process 	 signal 	 background 	 signal 	 background 
+process 	 0 	 1 	 0 	 1 
+rate 	 -1 	 -1 	 -1 	 -1 
+------------------------------ 
+lumi 	 lnN 	 1.014 	 - 	 1.014 	 - 
+C 	 shape 	 1.0 	 - 	 1.0 	 - 
+Fpix 	 shape 	 1.0 	 - 	 1.0 	 - 
+Jet 	 shape 	 1.0 	 - 	 1.0 	 - 
+K 	 shape 	 1.0 	 - 	 1.0 	 - 
+PU 	 shape 	 1.0 	 - 	 1.0 	 - 
+TriggerSF 	 shape 	 1.0 	 - 	 1.0 	 - 
+corrTemplateIh 	 shape 	 - 	 1.0 	 - 	 1.0 
+eta 	 shape 	 - 	 1.0 	 - 	 1.0 
+fitIh 	 shape 	 - 	 1.0 	 - 	 1.0 
+fitMom 	 shape 	 - 	 1.0 	 - 	 1.0 
+ih 	 shape 	 - 	 1.0 	 - 	 1.0 
+mom 	 shape 	 - 	 1.0 	 - 	 1.0 
+rateAll_Eta1 rateParam Ch2024_Eta1 background 1.0 
+rateAll_Eta1p2_2p4_Ih3p2 rateParam Ch2024_Eta1p2_2p4_Ih3p2 background 1.0 
+Ch2024_Eta1 autoMCStats 10 
+Ch2024_Eta1p2_2p4_Ih3p2 autoMCStats 10 

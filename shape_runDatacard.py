@@ -49,13 +49,14 @@ if __name__ == '__main__':
         print("Running shape limits")
 
     # Doit correspondre aux parametres du script de generation des datacards
-    regionBckg = '9fp10'
-    optionlabel = ''#'etaAbs_etaRebinPerso_1oPRebinBig_Oldfit_EtaCategory'
+    regionBckg  = '9fp10'
+    optionlabel = 'etaRebinPerso_Oldfit__PUppiMETcut'
+    etalabeldir = 'Eta1_2p4'
     
 
     # Meme logique d'etiquette que dans le script de generation
     if splitEta:
-        etaLabel = 'split_Eta1_Eta1_2p4'
+        etaLabel = 'split_Eta1_' + etalabeldir
     elif onlyEta1:
         etaLabel = 'Eta1'
     else:

@@ -35,19 +35,20 @@ onlyEta1      = options.onlyEta1
 
 # Mapping entre clés fpathPred et noms de systematics Combine (paires Up/Down)
 BKG_SYST_MAP = {
-    'eta'    : ('etaUp',    'etaDown'),
-    'ih'     : ('ihUp',     'ihDown'),
-    'mom'    : ('momUp',    'momDown'),
-    'fitIh'  : ('fitihUp',  'fitihDown'),
-    'fitMom' : ('fitmomUp', 'fitmomDown'),
-    'nofit'  : ('nofit',    'nofit'),   # Up=Down=nofit (variation one-sided)
+    'eta'            : ('etaUp',    'etaDown'),
+    'ih'             : ('ihUp',     'ihDown'),
+    'mom'            : ('momUp',    'momDown'),
+    'fitIh'          : ('fitihUp',  'fitihDown'),
+    'fitMom'         : ('fitmomUp', 'fitmomDown'),
+    #'nofit'          : ('nofit',    'nofit'),   # Up=Down=nofit (variation one-sided)
+    'corrTemplateIh' : ('corrTemplateIh', 'corrTemplateIh'),  # Up=Down=corrTemplateIh (one-sided)
 }
 
-SIG_ONLY_SYSTS = {'PU', 'TriggerSF', 'K', 'C', 'Fpix'}
+SIG_ONLY_SYSTS = {'PU', 'TriggerSF', 'K', 'C', 'Fpix', 'Jet'}
 
 # Base du nom des histogrammes signal ; l'etiquette eta est ajoutee ensuite
 # (ex : METanalysis_PseudoMETrescaled_Eta1, ..._Eta1_2p4, ..._Eta2p4)
-SIG_LABEL_BASE = "METanalysis_PseudoMETrescaled_"
+SIG_LABEL_BASE = "METanalysis_TestPUppiMETCut_"
 
 # --- Schema de correlation entre les deux categories eta (mode splitEta) ---
 # Tout systematic NON liste ici est CORRELE entre les deux categories : un seul
@@ -90,6 +91,7 @@ def get_signal_systematics(root_path, label, fp_cut="9fp10"):
         "KUp", "KDown",
         "CUp", "CDown",
         "FpixUp", "FpixDown",
+        "JetUp", "JetDown",
     ]
 
     f = rt.TFile.Open(root_path, "READ")
@@ -127,37 +129,23 @@ def build_fpathPred(idirData, versionData, eta):
     les noms de fichiers (et `'_<eta>_NoFit'` pour la variation nofit).
     """
     base = idirData + 'JetMET2024_V' + versionData
-    end  = '_' + eta + '_NewFit'
+    end  = '_' + eta + '_OldFit_IhC'
     fpathPred = {
-        'obs'        : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'nominal'    : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'etaUp'      : base + '_rebinEta2_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'etaDown'    : base + '_rebinEta8_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'ihUp'       : base + '_rebinEta4_rebinIh2_rebinP2_EtaReweighting' + end + '.root',
-        'ihDown'     : base + '_rebinEta4_rebinIh8_rebinP2_EtaReweighting' + end + '.root',
-        'momUp'      : base + '_rebinEta4_rebinIh4_rebinP1_EtaReweighting' + end + '.root',
-        'momDown'    : base + '_rebinEta4_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
-        'fitihUp'    : base + '_rebinEta4_rebinIh4_rebinP2_fitIhUp_EtaReweighting' + end + '.root',
-        'fitihDown'  : base + '_rebinEta4_rebinIh4_rebinP2_fitIhDown_EtaReweighting' + end + '.root',
-        'fitmomUp'   : base + '_rebinEta4_rebinIh4_rebinP2_fitPUp_EtaReweighting' + end + '.root',
-        'fitmomDown' : base + '_rebinEta4_rebinIh4_rebinP2_fitPDown_EtaReweighting' + end + '.root',
-        'nofit'      : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + '_' + eta + '_NoFit' + '.root',
+        'obs'            : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
+        'nominal'        : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
+        'etaUp'          : base + '_rebinEta2_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
+        'etaDown'        : base + '_rebinEta8_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
+        'ihUp'           : base + '_rebinEta4_rebinIh2_rebinP2_EtaReweighting' + end + '.root',
+        'ihDown'         : base + '_rebinEta4_rebinIh8_rebinP2_EtaReweighting' + end + '.root',
+        'momUp'          : base + '_rebinEta4_rebinIh4_rebinP1_EtaReweighting' + end + '.root',
+        'momDown'        : base + '_rebinEta4_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
+        'fitihUp'        : base + '_rebinEta4_rebinIh4_rebinP2_fitIhUp_EtaReweighting' + end + '.root',
+        'fitihDown'      : base + '_rebinEta4_rebinIh4_rebinP2_fitIhDown_EtaReweighting' + end + '.root',
+        'fitmomUp'       : base + '_rebinEta4_rebinIh4_rebinP2_fitPUp_EtaReweighting' + end + '.root',
+        'fitmomDown'     : base + '_rebinEta4_rebinIh4_rebinP2_fitPDown_EtaReweighting' + end + '.root',
+        #'nofit'          : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + '_' + eta + '_NoFit_IhC' + '.root',
+        'corrTemplateIh' : base + '_rebinEta4_rebinIh4_rebinP2_corrTemplateIh_EtaReweighting' + end + '.root',
     }
-    '''fpathPred = {
-        'obs'        : base + '_rebinEta4_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
-        'nominal'    : base + '_rebinEta4_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
-        'etaUp'      : base + '_rebinEta2_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
-        'etaDown'    : base + '_rebinEta8_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
-        'ihUp'       : base + '_rebinEta4_rebinIh2_rebinP4_EtaReweighting' + end + '.root',
-        'ihDown'     : base + '_rebinEta4_rebinIh8_rebinP4_EtaReweighting' + end + '.root',
-        'momUp'      : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'momDown'    : base + '_rebinEta4_rebinIh4_rebinP8_EtaReweighting' + end + '.root',
-        'fitihUp'    : base + '_rebinEta4_rebinIh4_rebinP4_fitIhUp_EtaReweighting' + end + '.root',
-        'fitihDown'  : base + '_rebinEta4_rebinIh4_rebinP4_fitIhDown_EtaReweighting' + end + '.root',
-        'fitmomUp'   : base + '_rebinEta4_rebinIh4_rebinP4_fitPUp_EtaReweighting' + end + '.root',
-        'fitmomDown' : base + '_rebinEta4_rebinIh4_rebinP4_fitPDown_EtaReweighting' + end + '.root',
-        #'nofit'      : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + '_' + eta + '_NoFit' + '.root',
-    }'''
     return fpathPred
 
 
@@ -492,19 +480,20 @@ def MakeDatacard_Shape(outDataCardsDir, modelName, rootFileName, categories,
 if __name__ == '__main__':
 
     # --- SETUP ---
-    versionData = '12p24'
-    regionBckg  = '9fp10'
-    channel     = 'Ch2024'
+    versionData   = '12p31'
+    versionSignal = '19p8'
+    regionBckg    = '9fp10'
+    channel       = 'Ch2024'
     
-    etalabeldir = 'Eta2p4'
-    optionlabel = ''
+    etalabeldir = 'Eta1_2p4'
+    optionlabel = 'etaRebinPerso_Oldfit__PUppiMETcut'
     idirData    = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/macros/DataMET_2024_V' + versionData + '__' + regionBckg + '_' + optionlabel + '/' + etalabeldir + '/'
     
 
     # --- Regions eta selon le booleen ---
     if splitEta:
-        etaRegions = ['Eta1', 'Eta1_2p4']    # central |eta|<1 , forward 1<|eta|<2.4
-        etaLabel   = 'split_Eta1_Eta1_2p4'
+        etaRegions = ['Eta1', etalabeldir]    # central |eta|<1 , forward 1<|eta|<2.4
+        etaLabel   = 'split_Eta1_' + etalabeldir
     elif onlyEta1:
         etaRegions = ['Eta1']                # region centrale seule |eta|<1
         etaLabel   = 'Eta1'
@@ -529,16 +518,16 @@ if __name__ == '__main__':
     # --- SIGNAL ---
     baseSignal = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/output/Gluino_V19/'
     fpath = {
-        'Gluino1100_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1100_V19p3_weighted.root',
-        'Gluino1200_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1200_V19p3_weighted.root',
-        'Gluino1300_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1300_V19p3_weighted.root',
-        'Gluino1400_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1400_V19p3_weighted.root',
-        'Gluino1600_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1600_V19p3_weighted.root',
-        'Gluino1800_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1800_V19p3_weighted.root',
-        'Gluino2000_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2000_V19p3_weighted.root',
-        'Gluino2200_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2200_V19p3_weighted.root',
-        'Gluino2400_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2400_V19p3_weighted.root',
-        'Gluino2600_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2600_V19p3_weighted.root'
+        'Gluino1100_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1100_V' + versionSignal + '_weighted.root',
+        'Gluino1200_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1200_V' + versionSignal + '_weighted.root',
+        'Gluino1300_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1300_V' + versionSignal + '_weighted.root',
+        'Gluino1400_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1400_V' + versionSignal + '_weighted.root',
+        'Gluino1600_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1600_V' + versionSignal + '_weighted.root',
+        'Gluino1800_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1800_V' + versionSignal + '_weighted.root',
+        'Gluino2000_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2000_V' + versionSignal + '_weighted.root',
+        'Gluino2200_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2200_V' + versionSignal + '_weighted.root',
+        'Gluino2400_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2400_V' + versionSignal + '_weighted.root',
+        'Gluino2600_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2600_V' + versionSignal + '_weighted.root'
     }
 
     # --- BOUCLE SUR LES SIGNAUX ---
@@ -553,7 +542,12 @@ if __name__ == '__main__':
 
             # --- SIGNAL pour cette region eta ---
             # le label porte l'etiquette eta : ..._Eta1, ..._Eta1_2p4, ..._Eta2p4
+            
+            #TEMPORARY
             sig_label = SIG_LABEL_BASE + eta
+            #sig_label = SIG_LABEL_BASE + eta.replace('Eta1p2', 'Eta1', 1)
+            #TEMPORARY
+            
             sig_nominal, sig_variations = get_signal_systematics(sig_path, sig_label, regionBckg)
 
             # --- BKG pour cette region eta (chemins propres a l'eta) ---

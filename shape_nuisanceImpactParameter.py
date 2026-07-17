@@ -33,6 +33,9 @@ if __name__ == '__main__':
     parser.add_option('--splitEta', action='store_true', dest='splitEta', default=False,
                       help='Doit correspondre au meme booleen des autres scripts : '
                            'tracker complet Eta2p4 (False) ou split Eta1/Eta1_2p4 (True).')
+    parser.add_option('--onlyEta1', action='store_true', dest='onlyEta1', default=False,
+                  help='Doit correspondre au script de generation : region centrale '
+                       'seule |eta|<1 (Eta1).')
     parser.add_option('-m', '--mass', type='string', default='120', dest='mass',
                       help="Hypothese de masse mH passee a combine (doit matcher le naming, "
                            "defaut 120 -> mH120, comme dans le run des limites).")
@@ -66,6 +69,7 @@ if __name__ == '__main__':
 
     isCutAndCount = options.cac
     splitEta      = options.splitEta
+    onlyEta1      = options.onlyEta1
     mass          = options.mass
     debug         = options.debug
     dryRun        = options.dryRun
@@ -74,15 +78,18 @@ if __name__ == '__main__':
     # Chemins — memes conventions que les autres scripts
     # -----------------------------------------------------------------------
     regionBckg = '9fp10'
+    tag = 'etaRebinPerso_Oldfit__PUppiMETcut'
 
     if splitEta:
         etaLabel = 'split_Eta1_Eta1_2p4'
     else:
         etaLabel = 'Eta2p4'
+    if onlyEta1: 
+        etaLabel = 'Eta1'
 
     cacTag  = '_cutandcount' if isCutAndCount else ''
-    idir    = 'MyNewDataCards/datacards_shape_{}_{}'.format(regionBckg, etaLabel)
-    odir    = 'MyNewDataCards/impacts_shape_{}_{}{}'.format(regionBckg, etaLabel, cacTag)
+    idir    = 'MyNewDataCards/datacards_shape_{}_{}_{}'.format(regionBckg, etaLabel, tag)
+    odir    = 'MyNewDataCards/impacts_shape_{}_{}_{}_{}'.format(regionBckg, etaLabel, cacTag, tag)
     os.makedirs(odir, exist_ok=True)
 
     idir_abs = os.path.abspath(idir)
