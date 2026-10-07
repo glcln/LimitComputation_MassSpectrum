@@ -1,0 +1,18 @@
+{
+  "PU": "Pile-Up",
+  "TriggerSF": "Trigger SF",
+  "K": "K_{mass}",
+  "C": "C_{mass}",
+  "Fpix": "F_{pixel}",
+  "Jet": "Jet Energy Scale",
+  "lumi": "Luminosity",
+  "eta": "#eta binning",
+  "ih": "I_{h} binning",
+  "mom": "1/p binning",
+  "fitIh": "I_{h} fit",
+  "fitMom": "1/p fit",
+  "corrTemplateIh": "I_{h} correlation",
+  "corrTemplate1oP": "1/p correlation",
+  "rateAll_Eta1": "rate |#eta| < 1",
+  "rateAll_Eta1_2p4": "rate 1#leq |#eta| < 2.4"
+}
