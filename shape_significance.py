@@ -7,7 +7,7 @@ from ROOT import TCanvas, TLatex, TLegend, TGraph
 
 rt.gROOT.SetBatch(True)
 
-import CMS_lumi, tdrstyle
+import tdrstyle
 tdrstyle.setTDRStyle()
 
 # Lancer la commande:

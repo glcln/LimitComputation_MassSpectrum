@@ -1,73 +1,136 @@
+"""
+Run Combine on the datacards written by shape_createDatacard.py.
+
+For one signal model (gluino, stop or stau) and one eta configuration, the
+script runs `combine -M AsymptoticLimits` on every datacard found in the input
+directory, one mass point after the other. Combine is run from the output
+directory, so its result tree is written there directly.
+
+Input
+    <DATACARDS_BASE>/<signal>/shape_<regionBckg>_<etaLabel>_<optionlabel>/
+        <Sample>.txt                (shape, default)
+        <Sample>_cutandcount.txt    (--cac)
+
+Output
+    <LIMITS_BASE>/<signal>/limit_shape_<regionBckg>_<etaLabel>[_cutandcount]_<optionlabel>/
+        higgsCombine.<Sample>.AsymptoticLimits.mH120.root
+    ("mH120" is the default Combine mass label; the mass point is in <Sample>.)
+
+DATACARDS_BASE and LIMITS_BASE are the Datacards/ and Limits/ directories next
+to this script.
+
+--signal, --splitEta, --onlyEta1 and the hardcoded regionBckg, optionlabel and
+etalabeldir settings must be the same as in shape_createDatacard.py: the
+directory names are rebuilt here from the same rules. optionlabel and
+etalabeldir are rewritten in place by the driver
+shape_ProduceLimitsForDifferentEtaCategory.py.
+
+With blinded datacards (the default of shape_createDatacard.py) data_obs is
+the background prediction, so the "observed" limit of the output tree is not
+a limit on real data.
+
+All mass points are processed even if Combine fails for some of them; the
+script then exits with an error listing the failed mass points.
+
+The expected significance is computed by shape_significance.py.
+
+Usage:
+    python3 shape_runDatacard.py                        # gluino, full tracker, shape
+    python3 shape_runDatacard.py --cac --signal stau    # cut-and-count, stau
+    # the next two need etalabeldir set as in shape_createDatacard.py
+    python3 shape_runDatacard.py --onlyEta1             # central region only
+    python3 shape_runDatacard.py --splitEta             # two eta categories
+"""
+
 from optparse import OptionParser
+import glob
 import os
+import re
+import subprocess
 import sys
 
-# Lancer la commande:
+# ---------------------------------------------------------------------------
+## COMMAND LINE
+# ---------------------------------------------------------------------------
+parser = OptionParser()
+parser.add_option('--cac', action='store_true', dest='cac', default=False,
+                  help='Run on the cut-and-count datacards instead of the shape ones.')
+parser.add_option('--splitEta', action='store_true', dest='splitEta', default=False,
+                  help='Must match the flag of the generation script: full tracker '
+                       'Eta2p4 (off) or split Eta1/Eta1_2p4 (on).')
+parser.add_option('--onlyEta1', action='store_true', dest='onlyEta1', default=False,
+                  help='Must match the generation script: central region |eta|<1 '
+                       'only (Eta1).')
+parser.add_option('--signal', dest='signal', default='gluino',
+                  type='choice', choices=['gluino', 'stop', 'stau'],
+                  help='Must match the generation script: gluino, stop or stau.')
+(options, args) = parser.parse_args()
 
-# FullTracker + shape + asymptotique: py shape_runDatacard.py
-# Séparation Eta1/Eta1_2p4 + shape + asymptotique: py shape_runDatacard.py --splitEta
+if options.splitEta and options.onlyEta1:
+    parser.error('--splitEta and --onlyEta1 are mutually exclusive')
 
-# Cut and count: py shape_runDatacard.py --cac (--splitEta)
+isCutAndCount = options.cac
+splitEta      = options.splitEta
+onlyEta1      = options.onlyEta1
+signalType    = options.signal
 
-# Idem mais en CLS: py shape_runDatacard.py -l CLS (--splitEta)
+# ---------------------------------------------------------------------------
+## CONFIGURATION
+# ---------------------------------------------------------------------------
+# Must match the settings of the datacard generation script.
+# optionlabel and etalabeldir are rewritten in place by the driver
+# shape_ProduceLimitsForDifferentEtaCategory.py, which looks for one-line,
+# single-quoted assignments: keep that form, and a single assignment of each
+# in this file.
+regionBckg  = '9fp10'
+optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
+etalabeldir = 'Eta2p4'
 
-# Calculer la significance: py shape_runDatacard.py (--splitEta) -s
+# Roots of the input (datacards) and output (Combine results) trees: the
+# Datacards/ and Limits/ directories next to this script
+BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+DATACARDS_BASE = os.path.join(BASE_DIR, 'Datacards')
+LIMITS_BASE    = os.path.join(BASE_DIR, 'Limits')
 
+
+# ---------------------------------------------------------------------------
+## FUNCTIONS
+# ---------------------------------------------------------------------------
+def mass_of(sample):
+    """Mass point of a sample: the first number of its name (0 if none)."""
+    m = re.search(r'(\d+)', sample)
+    return int(m.group(1)) if m else 0
+
+
+def find_samples(idir, cutAndCount):
+    """
+    Names of the samples that have a datacard in `idir`, sorted by mass.
+
+    A sample <Sample> has a shape datacard <Sample>.txt and/or a cut-and-count
+    datacard <Sample>_cutandcount.txt: only the kind selected by `cutAndCount`
+    is considered. The yield tables (yields_*.txt) written next to the
+    datacards are skipped.
+    """
+    suffix = '_cutandcount.txt' if cutAndCount else '.txt'
+    samples = []
+    for path in glob.glob(os.path.join(idir, '*.txt')):
+        fname = os.path.basename(path)
+        if fname.startswith('yields_'):
+            continue
+        if fname.endswith('_cutandcount.txt') != cutAndCount:
+            continue
+        samples.append(fname[:-len(suffix)])
+    return sorted(samples, key=lambda s: (mass_of(s), s))
 
 
 if __name__ == '__main__':
 
-    # SETUP
-    parser = OptionParser()
-    parser.add_option('-l', '--limits', type='string', action='store',
-                    default='Asymptotic', dest='limits',
-                    help='Asymptotic or CLS')
-    parser.add_option('-s', '--significance', action='store_true',
-                    default=False, dest='sig',
-                    help='Perform significance computation')
-    parser.add_option('-d', '--debug', type='int',
-                    default=1, dest='debug',
-                    help='Debug level')
-    parser.add_option('--cac', action='store_true', dest='cac', default=False,
-                  help='Chose if cut and count method (True) or Shape (False)')
-    parser.add_option('--splitEta', action='store_true', dest='splitEta', default=False,
-                  help='Doit correspondre au meme booleen du script de generation : '
-                       'tracker complet Eta2p4 (False) ou split Eta1/Eta1_2p4 (True).')
-    parser.add_option('--onlyEta1', action='store_true', dest='onlyEta1', default=False,
-                  help='Doit correspondre au script de generation : region centrale '
-                       'seule |eta|<1 (Eta1).')
-    parser.add_option('--signal', dest='signal', default='gluino',
-                      type='choice', choices=['gluino', 'stop', 'stau'],
-                      help='Doit correspondre au script de generation : gluino, stop ou stau.')
-
-    (options, args) = parser.parse_args()
-    debug           = options.debug
-    isCutAndCount   = options.cac
-    splitEta        = options.splitEta
-    onlyEta1        = options.onlyEta1
-    signalType      = options.signal
-
-    if (isCutAndCount): 
+    if isCutAndCount:
         print("Running cut and count limits")
-    else :
+    else:
         print("Running shape limits")
 
-    DATACARDS_BASE = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/HSCPLimit/LimitComputation_MassSpectrum/Datacards'
-    LIMITS_BASE    = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/HSCPLimit/LimitComputation_MassSpectrum/Limits'
-
-    SIGNAL_SAMPLES = {
-        'gluino': ('Gluino', [1100, 1200, 1300, 1400, 1600, 1800, 2000, 2200, 2400, 2600]),
-        'stop'  : ('Stop',   [700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600]),
-        'stau'  : ('Stau',   [247, 308, 432, 557, 651, 745, 871, 1029, 1218, 1409, 1599]),
-    }
-
-    # Doit correspondre aux parametres du script de generation des datacards
-    regionBckg  = '9fp10'
-    optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
-    etalabeldir = 'Eta2p4'
-    
-
-    # Meme logique d'etiquette que dans le script de generation
+    # Same eta label logic as in the generation script
     if splitEta:
         etaLabel = 'split_Eta1_' + etalabeldir
     elif onlyEta1:
@@ -75,11 +138,11 @@ if __name__ == '__main__':
     else:
         etaLabel = 'Eta2p4'
 
+    # Input directory: shape and cut-and-count datacards live side by side
     idir = os.path.join(DATACARDS_BASE, signalType, 'shape_{}_{}_{}'.format(regionBckg, etaLabel, optionlabel))
 
+    # Output directory: one per method (shape / cut-and-count)
     odir = os.path.join(LIMITS_BASE, signalType, 'limit_shape_{}_{}{}_{}'.format(regionBckg, etaLabel, "_cutandcount" if isCutAndCount else "", optionlabel))
-    if options.limits == "CLS":
-        odir += "_CLS"
 
     if not os.path.isdir(idir):
         sys.exit("Datacard directory not found: {}".format(idir))
@@ -87,69 +150,36 @@ if __name__ == '__main__':
     print("Datacards: {}".format(idir))
     print("Limits   : {}".format(odir))
 
-    # Doit correspondre aux cles de fpath{} dans le script de generation
-    sigLabel, masses = SIGNAL_SAMPLES[signalType]
-    samples = ['{}{}_2024'.format(sigLabel, m) for m in masses]
-    print("Signal sample: {} -> {} points de masse".format(signalType, len(samples)))
+    # One datacard per mass point, named after the sample ('<Label><mass>_2024')
+    endname = "_cutandcount" if isCutAndCount else ""
+    samples = find_samples(idir, isCutAndCount)
+    if not samples:
+        sys.exit("No {} datacard found in {}".format("cut-and-count" if isCutAndCount else "shape", idir))
+    print("Signal sample: {} -> {} mass points".format(signalType, len(samples)))
 
-    def task(sample):
-        name = sample
-        if debug > 0:
-            print("Processing: {}".format(name))
-
-        if options.limits == "Asymptotic":
-            run_combine = (
-                "combine -M AsymptoticLimits"
-                " -n .{name}"
-                " -d {idir}/{name}" + ("_cutandcount" if isCutAndCount else "") + ".txt"
-                " --rRelAcc 0.000005 --rAbsAcc 0.000005"
-                " --rMin -1000.0 --rMax 1000.0"
-            ).format(name=name, idir=idir, debug=debug)
-
-            if debug > 0:
-                print("Running: {}".format(run_combine))
-            os.system(run_combine)
-            os.system("mv higgsCombine.{0}.AsymptoticLimits.mH120.root {1}/".format(name, odir))
-
-        elif options.limits == "CLS":
-            from combine_parameters import toy_number, nice_priority
-            import time
-            absAcc = 0.0005
-            quantiles = {
-                "0p5":   "0.5",
-                "0p84":  "0.84",
-                "0p975": "0.975",
-                "0p16":  "0.16",
-                "0p025": "0.025",
-            }
-            base_cmd = (
-                "nice -n {nice} combine -H AsymptoticLimits -M HybridNew"
-                " -n .{name}"
-                " -d {idir}/{name}" + ("_cutandcount" if isCutAndCount else "") + ".txt"
-                " --saveWorkspace --LHCmode LHC-limits"
-                " --rAbsAcc {acc}"
-                " -v 1"
-            )
-            cmd_obs = base_cmd.format(nice=nice_priority, name=name, idir=idir, acc=0.00005) + " &"
-            os.system(cmd_obs)
-
-            for label, q in quantiles.items():
-                cmd = (base_cmd + " --expectedFromGrid={q} --adaptiveToys 1 -T {T} &").format(
-                    nice=nice_priority, name=name, idir=idir, acc=absAcc, q=q, T=toy_number)
-                print(cmd)
-                os.system(cmd)
-            time.sleep(7200)
-
-        if options.sig:
-            run_sig = (
-                "combine -M Significance"
-                " -n .{name}"
-                " {idir}/{name}" + ("_cutandcount" if isCutAndCount else "") + ".txt"
-                " -t -1 --expectSignal=1"
-            ).format(name=name, idir=idir)
-            print(run_sig)
-            os.system(run_sig)
-            os.system("mv higgsCombine.{0}.Significance.mH120.root {1}/".format(name, odir))
-
+    failed = []
     for sample in samples:
-        task(sample)
+        print("Processing: {}".format(sample))
+
+        # Asymptotic CLs limits on the signal strength r.
+        #   -n .<sample>          label of the output file
+        #   --rRelAcc/--rAbsAcc   relative / absolute accuracy required on r
+        #   --rMin/--rMax         range of r
+        run_combine = (
+            "combine -M AsymptoticLimits"
+            " -n .{name}"
+            " -d {idir}/{name}{endname}.txt"
+            " --rRelAcc 0.000005 --rAbsAcc 0.000005"
+            " --rMin -1000.0 --rMax 1000.0"
+        ).format(name=sample, idir=idir, endname=endname)
+        print("Running: {}".format(run_combine), flush=True)
+
+        # Combine writes its output in its working directory: run it from odir
+        status = subprocess.run(run_combine, shell=True, cwd=odir).returncode
+        if status != 0:
+            print("ERROR: combine exited with status {} for {}".format(status, sample))
+            failed.append(sample)
+
+    # A non-zero exit status lets the driver report the failure
+    if failed:
+        sys.exit("Combine failed for {} of {} mass points: {}".format(len(failed), len(samples), ', '.join(failed)))
