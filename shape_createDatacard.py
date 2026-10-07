@@ -2,6 +2,8 @@ from optparse import OptionParser
 import ROOT as rt
 import sys
 import os
+import ctypes
+import re
 import array
 from collections import OrderedDict
 
@@ -27,11 +29,43 @@ parser.add_option('--splitEta', action='store_true', dest='splitEta', default=Fa
                        '(Eta2p4) (False).')
 parser.add_option('--onlyEta1', action='store_true', dest='onlyEta1', default=False,
                   help='Datacard avec uniquement la region centrale |eta|<1 (Eta1).')
+parser.add_option('--signal', dest='signal', default='gluino',
+                  type='choice', choices=['gluino', 'stop', 'stau'],
+                  help='Sample de signal : gluino (defaut), stop ou stau.')
 (options, args) = parser.parse_args()
 
 isCutAndCount = options.cac
 splitEta      = options.splitEta
 onlyEta1      = options.onlyEta1
+signalType    = options.signal
+
+DATACARDS_BASE = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/HSCPLimit/LimitComputation_MassSpectrum/Datacards'
+
+BASE_SIGNAL_DIR = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/output/'
+
+SIGNAL_CONFIG = {
+    'gluino': {
+        'dir'     : BASE_SIGNAL_DIR + 'Gluino_V19/',
+        'pattern' : 'Gluino_Run3_MET_madgraph_{mass}_V{ver}_weighted.root',
+        'version' : '19p12',
+        'label'   : 'Gluino',
+        'masses'  : [1100, 1200, 1300, 1400, 1600, 1800, 2000, 2200, 2400, 2600],
+    },
+    'stop': {
+        'dir'     : BASE_SIGNAL_DIR + 'Stop_V21/',
+        'pattern' : 'Stop_Run3_MET_madgraph_{mass}_V{ver}_weighted.root',
+        'version' : '21p0',
+        'label'   : 'Stop',
+        'masses'  : [700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600],
+    },
+    'stau': {
+        'dir'     : BASE_SIGNAL_DIR + 'Stau_V20/',
+        'pattern' : 'Stau_Run3_MET_{mass}_V{ver}_weighted.root',
+        'version' : '20p0',
+        'label'   : 'Stau',
+        'masses'  : [247, 308, 432, 557, 651, 745, 871, 1029, 1218, 1409, 1599],
+    },
+}
 
 # Mapping entre clés fpathPred et noms de systematics Combine (paires Up/Down)
 BKG_SYST_MAP = {
@@ -40,25 +74,42 @@ BKG_SYST_MAP = {
     'mom'            : ('momUp',    'momDown'),
     'fitIh'          : ('fitihUp',  'fitihDown'),
     'fitMom'         : ('fitmomUp', 'fitmomDown'),
-    #'nofit'          : ('nofit',    'nofit'),   # Up=Down=nofit (variation one-sided)
     'corrTemplateIh' : ('corrTemplateIh', 'corrTemplateIh'),  # Up=Down=corrTemplateIh (one-sided)
+    'corrTemplate1oP' : ('corrTemplate1oP', 'corrTemplate1oP'),  # Up=Down=corrTemplateIh (one-sided)
 }
 
-SIG_ONLY_SYSTS = {'PU', 'TriggerSF', 'K', 'C', 'Fpix', 'Jet'}
+# Suffixe de fichier associe a chaque cle de fpathPred
+BKG_FILE_SUFFIX = OrderedDict([
+    ('obs'             , 'nominal'),
+    ('nominal'         , 'nominal'),
+    ('etaUp'           , 'binEtaUp'),
+    ('etaDown'         , 'binEtaDown'),
+    ('ihUp'            , 'binIhUp'),
+    ('ihDown'          , 'binIhDown'),
+    ('momUp'           , 'binMomUp'),
+    ('momDown'         , 'binMomDown'),
+    ('fitihUp'         , 'fitIhUp'),
+    ('fitihDown'       , 'fitIhDown'),
+    ('fitmomUp'        , 'fitMomUp'),
+    ('fitmomDown'      , 'fitMomDown'),
+    ('corrTemplateIh'  , 'corrTemplateIh'),
+    ('corrTemplate1oP' , 'corrTemplate1oP'),
+])
+
+SIG_ONLY_SYSTS = {'PU', 'TriggerSF', 'K', 'C', 'Jet'}
+
+HARDCODED_LNN = OrderedDict([
+    ('lumi', '1.014'),
+    ('Fpix', '1.016'),
+])
 
 # Base du nom des histogrammes signal ; l'etiquette eta est ajoutee ensuite
 # (ex : METanalysis_PseudoMETrescaled_Eta1, ..._Eta1_2p4, ..._Eta2p4)
-SIG_LABEL_BASE = "METanalysis_TestPUppiMETCut_"
+SIG_LABEL_BASE = "METanalysis_TestPUppiMETCut"
 
-# --- Schema de correlation entre les deux categories eta (mode splitEta) ---
-# Tout systematic NON liste ici est CORRELE entre les deux categories : un seul
-# nuisance partage (meme nom dans les deux canaux).
-# Tout systematic liste ici est DECORRELE : un nuisance par categorie, nomme
-# <syst>_<eta> (ex: K_Eta1 et K_Eta1_2p4), comme dans l'ancien decoupage par annee.
-# N'a aucun effet en mode tracker complet (un seul canal).
-# Exemple suivant la convention de l'ancien decoupage par annee :
-#   DECORRELATED_SYSTS = {'K', 'C', 'Fpix', 'fitIh', 'fitMom'}
 DECORRELATED_SYSTS = set()
+# DECORRELATED_SYSTS = {'eta', 'ih', 'mom', 'fitIh', 'fitMom',
+#                       'corrTemplateIh', 'corrTemplate1oP'}
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +141,6 @@ def get_signal_systematics(root_path, label, fp_cut="9fp10"):
         "TriggerSFUp", "TriggerSFDown",
         "KUp", "KDown",
         "CUp", "CDown",
-        "FpixUp", "FpixDown",
         "JetUp", "JetDown",
     ]
 
@@ -120,33 +170,14 @@ def get_signal_systematics(root_path, label, fp_cut="9fp10"):
     return nominal, systematics
 
 
-def build_fpathPred(idirData, versionData, eta):
+def build_fpathPred(idirData, versionData, eta, option=""):
     """
-    Construit le dictionnaire des chemins de fichiers de prediction bkg pour
-    une region eta donnee ('Eta1', 'Eta1_2p4' ou 'Eta2p4').
-
-    C'est ici que l'etiquette `end = '_<eta>_NewFit'` est injectee dans tous
-    les noms de fichiers (et `'_<eta>_NoFit'` pour la variation nofit).
+    Construit le dictionnaire des chemins de prediction bkg pour une region eta.
+    Schema : JetMET2024_V<version>_<eta><option>_<variation>.root
     """
-    base = idirData + 'JetMET2024_V' + versionData
-    end  = '_' + eta + '_OldFit_IhC'
-    fpathPred = {
-        'obs'            : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'nominal'        : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'etaUp'          : base + '_rebinEta2_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'etaDown'        : base + '_rebinEta8_rebinIh4_rebinP2_EtaReweighting' + end + '.root',
-        'ihUp'           : base + '_rebinEta4_rebinIh2_rebinP2_EtaReweighting' + end + '.root',
-        'ihDown'         : base + '_rebinEta4_rebinIh8_rebinP2_EtaReweighting' + end + '.root',
-        'momUp'          : base + '_rebinEta4_rebinIh4_rebinP1_EtaReweighting' + end + '.root',
-        'momDown'        : base + '_rebinEta4_rebinIh4_rebinP4_EtaReweighting' + end + '.root',
-        'fitihUp'        : base + '_rebinEta4_rebinIh4_rebinP2_fitIhUp_EtaReweighting' + end + '.root',
-        'fitihDown'      : base + '_rebinEta4_rebinIh4_rebinP2_fitIhDown_EtaReweighting' + end + '.root',
-        'fitmomUp'       : base + '_rebinEta4_rebinIh4_rebinP2_fitPUp_EtaReweighting' + end + '.root',
-        'fitmomDown'     : base + '_rebinEta4_rebinIh4_rebinP2_fitPDown_EtaReweighting' + end + '.root',
-        #'nofit'          : base + '_rebinEta4_rebinIh4_rebinP2_EtaReweighting' + '_' + eta + '_NoFit_IhC' + '.root',
-        'corrTemplateIh' : base + '_rebinEta4_rebinIh4_rebinP2_corrTemplateIh_EtaReweighting' + end + '.root',
-    }
-    return fpathPred
+    base = idirData + 'JetMET2024_V' + versionData + '_' + eta + option
+    return {key: '{}_{}.root'.format(base, suf)
+            for key, suf in BKG_FILE_SUFFIX.items()}
 
 
 def load_bkg_histograms(fpathPred, regionBckg, channel="Ch2024"):
@@ -213,7 +244,7 @@ def prepare_shape_rootfile(outDir, modelName, categories):
         _rebin(bkg_nominal, "background_{}".format(chan)).Write()
         _rebin(bkg_nominal, "data_obs_{}".format(chan)).Write()
 
-        # Systematics signal : PU, TriggerSF, K, C, Fpix
+        # Systematics signal : PU, TriggerSF, K, C
         for sysName, h_var in sig_variations.items():
             if h_var is not None:
                 _rebin(h_var, "signal_{}_{}".format(chan, sysName)).Write()
@@ -223,16 +254,15 @@ def prepare_shape_rootfile(outDir, modelName, categories):
             h_bkg_up = mass_plot.get(keyUp)
             if h_bkg_up:
                 _rebin(h_bkg_up, "background_{}_{}Up".format(chan, systCombName)).Write()
-            h_bkg_down = mass_plot.get(keyDown)
-            if h_bkg_down:
-                _rebin(h_bkg_down, "background_{}_{}Down".format(chan, systCombName)).Write()
 
-            syst_up_name   = "{}Up".format(systCombName)
-            syst_down_name = "{}Down".format(systCombName)
-            if syst_up_name not in sig_variations or sig_variations.get(syst_up_name) is None:
-                _rebin(sig_nominal, "signal_{}_{}Up".format(chan, systCombName)).Write()
-            if syst_down_name not in sig_variations or sig_variations.get(syst_down_name) is None:
-                _rebin(sig_nominal, "signal_{}_{}Down".format(chan, systCombName)).Write()
+            if keyUp == keyDown:
+                if h_bkg_up:
+                    _mirror(bkg_nominal, h_bkg_up,
+                            "background_{}_{}Down".format(chan, systCombName)).Write()
+            else:
+                h_bkg_down = mass_plot.get(keyDown)
+                if h_bkg_down:
+                    _rebin(h_bkg_down, "background_{}_{}Down".format(chan, systCombName)).Write()
 
     f.Close()
     print("ROOT file written: {}".format(rootFileName))
@@ -248,6 +278,16 @@ def _rebin(h, newname):
     h_re = h.Rebin(len(REBINNING) - 1, newname, REBINNING)
     h_re.SetDirectory(0)
     return h_re
+
+def _mirror(h_nom, h_var, newname):
+    """Down miroir : content_down = 2*nominal - variation, bin par bin."""
+    h_dn  = _rebin(h_nom, newname)
+    h_var_re = _rebin(h_var, newname + "_tmpvar")
+    for i in range(0, h_dn.GetNbinsX() + 2):
+        v = 2.0 * h_dn.GetBinContent(i) - h_var_re.GetBinContent(i)
+        h_dn.SetBinContent(i, max(v, 0.0))
+        h_dn.SetBinError(i, h_var_re.GetBinError(i))
+    return h_dn
 
 
 # --- petits helpers pour la datacard -----------------------------------------
@@ -290,7 +330,6 @@ def _lnN_factor(cat, base, process):
     Retourne :
         None             -> systematic absent pour ce process/categorie ('-')
         (down, up)       -> systematic deux cotes (signal)
-        valeur unique    -> systematic one-sided (bkg : nofit)
     """
     xmin, xmax = cat['xmin'], cat['xmax']
 
@@ -318,10 +357,10 @@ def _lnN_factor(cat, base, process):
         up = integralHisto(h_up, xmin, xmax) / nom
         dn = integralHisto(h_dn, xmin, xmax) / nom
         if keyUp == keyDown:
-            # one-sided (ex: nofit) -> facteur unique, convention ancienne
+            # one-sided (ex: corrTemplateIh) -> facteur unique
             return up
-        # deux cotes -> on combine en un facteur symetrique comme l'ancien script
-        return max(abs(1 - dn), abs(1 - up)) + 1
+        # deux cotes -> lnN asymetrique dn/up, comme pour le signal
+        return (dn, up)
     
 
 def _fmt_lnN(val):
@@ -332,6 +371,96 @@ def _fmt_lnN(val):
         return '{}/{}'.format(val[0], val[1])
     return str(val)
 
+def _integral_and_error(h, xmin, xmax):
+    err = ctypes.c_double(0.0)
+    val = h.IntegralAndError(h.FindBin(xmin), h.FindBin(xmax), err)
+    return val, err.value
+
+
+def _quad_syst(cat, process):
+    """
+    Somme quadratique des systematiques d'une categorie, cote haut et cote bas.
+    Le signe de la deviation decide du cote auquel une source contribue : une
+    source dont les deux variations font monter le yield ne remplit que le
+    cote up. Les systematiques one-sided (corrTemplateIh) sont symetrisees,
+    conformement au miroir applique dans _mirror().
+    Retourne (rel_up, rel_down), incertitudes relatives.
+    """
+    up2, dn2 = 0.0, 0.0
+
+    if process == 'signal':
+        bases = sorted(_sig_bases(cat['sig_variations']))
+    else:
+        bases = sorted(BKG_SYST_MAP)
+
+    for base in bases:
+        f = _lnN_factor(cat, base, process)
+        if f is None:
+            continue
+        if isinstance(f, tuple):
+            d1, d2 = f[0] - 1.0, f[1] - 1.0
+        else:
+            d1, d2 = f - 1.0, 1.0 - f
+        up2 += max(d1, d2, 0.0) ** 2
+        dn2 += min(d1, d2, 0.0) ** 2
+
+    if process == 'signal':
+        for val in HARDCODED_LNN.values():
+            d = abs(float(val) - 1.0)
+            up2 += d * d
+            dn2 += d * d
+
+    return up2 ** 0.5, dn2 ** 0.5
+
+
+def collect_yields(signal, categories):
+    """Construit une ligne de tableau par categorie pour un point de masse."""
+    m = re.search(r'(\d+)', signal)
+    mass = int(m.group(1)) if m else 0
+
+    rows = []
+    for cat in categories:
+        xmin, xmax = cat['xmin'], cat['xmax']
+
+        sig, sig_stat = _integral_and_error(cat['sig_nominal'], xmin, xmax)
+        bkg, bkg_stat = _integral_and_error(cat['bkg_nominal'], xmin, xmax)
+
+        h_obs = cat['mass_plot'].get('obs')
+        obs = integralHisto(h_obs, xmin, xmax) if h_obs is not None else cat['obs_yield']
+
+        sig_up, sig_dn = _quad_syst(cat, 'signal')
+        bkg_up, bkg_dn = _quad_syst(cat, 'background')
+
+        sig_totUp = (sig * sig_up) ** 2 + sig_stat ** 2
+        sig_totDn = (sig * sig_dn) ** 2 + sig_stat ** 2
+        bkg_totUp = (bkg * bkg_up) ** 2 + bkg_stat ** 2
+        bkg_totDn = (bkg * bkg_dn) ** 2 + bkg_stat ** 2
+
+        rows.append([
+            mass, cat['eta'], xmin, xmax,
+            sig, sig_stat, sig * sig_up, sig * sig_dn,
+            bkg, bkg_stat, bkg * bkg_up, bkg * bkg_dn,
+            obs, obs ** 0.5,
+            sig_totUp ** 0.5, sig_totDn ** 0.5, bkg_totUp ** 0.5, bkg_totDn ** 0.5
+        ])
+    return rows
+
+
+def write_yield_file(outPath, rows):
+    cols = ['mass', 'eta', 'xmin', 'xmax',
+            'sig', 'sig_stat', 'sig_systUp', 'sig_systDn',
+            'bkg', 'bkg_stat', 'bkg_systUp', 'bkg_systDn',
+            'obs', 'obs_stat',
+            'sig_totUp', 'sig_totDn', 'bkg_totUp', 'bkg_totDn'
+            ]
+    fmt_head = '#{:>7} {:>10}' + ' {:>12}' * 16 + '\n'
+    fmt_row  = ' {:>7d} {:>10}' + ' {:>12.5g}' * 16 + '\n'
+
+    with open(outPath, 'w') as f:
+        f.write(fmt_head.format(*cols))
+        for r in sorted(rows, key=lambda x: (x[0], x[1])):
+            f.write(fmt_row.format(*r))
+    print("Yield table written: {}".format(outPath))
 
 def MakeDatacard_Shape(outDataCardsDir, modelName, rootFileName, categories,
                        isCutAndCount_=False, thresh=10):
@@ -413,11 +542,12 @@ def MakeDatacard_Shape(outDataCardsDir, modelName, rootFileName, categories,
 
     systType = 'lnN' if isCutAndCount_ else 'shape'
 
-    # --- lumi : correle (meme periode de prise de donnees), signal seulement ---
-    lumi_cols = []
-    for cat in categories:
-        lumi_cols += ['1.014', '-']
-    text_file.write('lumi \t lnN \t ' + ' \t '.join(lumi_cols) + ' \n')
+    # --- systematics hardcodes en lnN : signal seulement, correles ---
+    for systName, systVal in HARDCODED_LNN.items():
+        cols = []
+        for cat in categories:
+            cols += [systVal, '-']
+        text_file.write('{} \t lnN \t '.format(systName) + ' \t '.join(cols) + ' \n')
 
     # --- ecriture d'un systematic (correle ou decorrele) ---
     def write_syst(base, present, process):
@@ -457,10 +587,10 @@ def MakeDatacard_Shape(outDataCardsDir, modelName, rootFileName, categories,
             cols = _row(categories, present, process)
         text_file.write('{} \t {} \t '.format(base, systType) + ' \t '.join(cols) + ' \n')
 
-    # Systematics signal (PU, TriggerSF, K, C, Fpix)
+    # Systematics signal (PU, TriggerSF, K, C)
     for base in sorted(sig_present):
         write_syst(base, sig_present[base], 'signal')
-    # Systematics bkg (eta, ih, mom, fitIh, fitMom, nofit)
+    # Systematics bkg (eta, ih, mom, fitIh, fitMom)
     for base in sorted(bkg_present):
         write_syst(base, bkg_present[base], 'background')
 
@@ -469,7 +599,7 @@ def MakeDatacard_Shape(outDataCardsDir, modelName, rootFileName, categories,
         for cat in categories:
             # une normalisation libre par categorie (decorrelee entre les regions eta)
             rp = 'rateAll' if nChan == 1 else 'rateAll_{}'.format(cat['eta'])
-            text_file.write('{} rateParam {} background 1.0 \n'.format(rp, cat['channel']))
+            text_file.write('{} rateParam {} background 1.0 [0,5]\n'.format(rp, cat['channel']))
         for cat in categories:
             text_file.write('{} autoMCStats {} \n'.format(cat['channel'], thresh))
 
@@ -480,14 +610,14 @@ def MakeDatacard_Shape(outDataCardsDir, modelName, rootFileName, categories,
 if __name__ == '__main__':
 
     # --- SETUP ---
-    versionData   = '12p31'
-    versionSignal = '19p8'
+    versionData   = '12p35'
     regionBckg    = '9fp10'
     channel       = 'Ch2024'
     
-    etalabeldir = 'Eta1_2p4'
-    optionlabel = 'etaRebinPerso_Oldfit__PUppiMETcut'
-    idirData    = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/macros/DataMET_2024_V' + versionData + '__' + regionBckg + '_' + optionlabel + '/' + etalabeldir + '/'
+    etalabeldir = 'Eta2p4'
+    optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
+    optionlabelForFile = '_SigmaPtoverPt_0p5_EoP_0p1'
+    idirData    = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/macros/data2024_V' + versionData + '__' + regionBckg + '_' + optionlabel + '/' + etalabeldir + '/'
     
 
     # --- Regions eta selon le booleen ---
@@ -501,8 +631,9 @@ if __name__ == '__main__':
         etaRegions = ['Eta2p4']              # tracker complet |eta|<2.4
         etaLabel   = 'Eta2p4'
 
-    outDataCardsDir = "MyNewDataCards/datacards_shape_{}_{}_{}/".format(regionBckg, etaLabel, optionlabel)
+    outDataCardsDir = os.path.join(DATACARDS_BASE, signalType, 'shape_{}_{}_{}'.format(regionBckg, etaLabel, optionlabel)) + os.sep
     os.makedirs(outDataCardsDir, exist_ok=True)
+    print("Output dir: {}".format(outDataCardsDir))
 
     if isCutAndCount:
         print("Cut and count method selected")
@@ -516,19 +647,15 @@ if __name__ == '__main__':
         print("Full tracker selected -> Eta2p4")
 
     # --- SIGNAL ---
-    baseSignal = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/output/Gluino_V19/'
-    fpath = {
-        'Gluino1100_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1100_V' + versionSignal + '_weighted.root',
-        'Gluino1200_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1200_V' + versionSignal + '_weighted.root',
-        'Gluino1300_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1300_V' + versionSignal + '_weighted.root',
-        'Gluino1400_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1400_V' + versionSignal + '_weighted.root',
-        'Gluino1600_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1600_V' + versionSignal + '_weighted.root',
-        'Gluino1800_2024': baseSignal + 'Gluino_Run3_MET_madgraph_1800_V' + versionSignal + '_weighted.root',
-        'Gluino2000_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2000_V' + versionSignal + '_weighted.root',
-        'Gluino2200_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2200_V' + versionSignal + '_weighted.root',
-        'Gluino2400_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2400_V' + versionSignal + '_weighted.root',
-        'Gluino2600_2024': baseSignal + 'Gluino_Run3_MET_madgraph_2600_V' + versionSignal + '_weighted.root'
-    }
+    sigCfg = SIGNAL_CONFIG[signalType]
+    fpath = OrderedDict(
+        ('{}{}_2024'.format(sigCfg['label'], m),
+         sigCfg['dir'] + sigCfg['pattern'].format(mass=m, ver=sigCfg['version']))
+        for m in sigCfg['masses']
+    )
+    print("Signal sample: {} ({} points de masse)".format(signalType, len(fpath)))
+
+    yield_rows = []
 
     # --- BOUCLE SUR LES SIGNAUX ---
     for signal, sig_path in fpath.items():
@@ -542,16 +669,12 @@ if __name__ == '__main__':
 
             # --- SIGNAL pour cette region eta ---
             # le label porte l'etiquette eta : ..._Eta1, ..._Eta1_2p4, ..._Eta2p4
-            
-            #TEMPORARY
-            sig_label = SIG_LABEL_BASE + eta
-            #sig_label = SIG_LABEL_BASE + eta.replace('Eta1p2', 'Eta1', 1)
-            #TEMPORARY
+            sig_label = SIG_LABEL_BASE + optionlabelForFile + '_' + eta
             
             sig_nominal, sig_variations = get_signal_systematics(sig_path, sig_label, regionBckg)
 
             # --- BKG pour cette region eta (chemins propres a l'eta) ---
-            fpathPred = build_fpathPred(idirData, versionData, eta)
+            fpathPred = build_fpathPred(idirData, versionData, eta, optionlabelForFile)
             mass_plot = load_bkg_histograms(fpathPred, regionBckg, channel)
 
             # --- Fenetre en masse sur le signal nominal ---
@@ -588,7 +711,7 @@ if __name__ == '__main__':
             rootFileName = "FAKE"   # non utilise en cut-and-count, juste pour la signature
 
         # --- Datacard (1 ou 2 categories) ---
-        MakeDatacard_Shape(
-            outDataCardsDir, signal, rootFileName, categories,
-            isCutAndCount
-        )
+        MakeDatacard_Shape(outDataCardsDir, signal, rootFileName, categories, isCutAndCount)
+        yield_rows += collect_yields(signal, categories)
+    
+    write_yield_file(outDataCardsDir + "yields_{}_{}.txt".format(regionBckg, etaLabel), yield_rows)

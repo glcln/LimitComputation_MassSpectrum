@@ -13,8 +13,8 @@ process 	 0 	 1
 rate 	 -1 	 -1 
 ------------------------------ 
 lumi 	 lnN 	 1.014 	 - 
+Fpix 	 lnN 	 1.016 	 - 
 C 	 shape 	 1.0 	 - 
-Fpix 	 shape 	 1.0 	 - 
 Jet 	 shape 	 1.0 	 - 
 K 	 shape 	 1.0 	 - 
 PU 	 shape 	 1.0 	 - 
@@ -25,5 +25,5 @@ fitIh 	 shape 	 - 	 1.0
 fitMom 	 shape 	 - 	 1.0 
 ih 	 shape 	 - 	 1.0 
 mom 	 shape 	 - 	 1.0 
-rateAll rateParam Ch2024 background 1.0 
+rateAll rateParam Ch2024 background 1.0 [0,5]
 Ch2024 autoMCStats 10 

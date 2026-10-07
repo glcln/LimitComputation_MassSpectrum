@@ -17,9 +17,13 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 plt.rcParams.update({
-    'font.family': 'serif',
-    'font.serif': ['cmr10', 'Computer Modern Roman', 'DejaVu Serif'],
-    'mathtext.fontset': 'cm',
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Helvetica', 'TeX Gyre Heros', 'Arial', 'DejaVu Sans'],
+    'mathtext.fontset': 'custom',
+    'mathtext.rm': 'sans',
+    'mathtext.it': 'sans:italic',
+    'mathtext.bf': 'sans:bold',
+    'mathtext.default': 'regular',
     'axes.formatter.use_mathtext': True,
 })
 

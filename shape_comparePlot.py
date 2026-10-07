@@ -20,10 +20,14 @@ import matplotlib.pyplot as plt
 
 # Police LaTeX (Computer Modern) sans dépendre d'une installation LaTeX
 plt.rcParams.update({
-    'font.family': 'serif',
-    'font.serif': ['cmr10', 'Computer Modern Roman', 'DejaVu Serif'],
-    'mathtext.fontset': 'cm',
-    'axes.formatter.use_mathtext': True,   # évite le warning cmr10 sur le signe moins
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Helvetica', 'TeX Gyre Heros', 'Arial', 'DejaVu Sans'],
+    'mathtext.fontset': 'custom',
+    'mathtext.rm': 'sans',
+    'mathtext.it': 'sans:italic',
+    'mathtext.bf': 'sans:bold',
+    'mathtext.default': 'regular',
+    'axes.formatter.use_mathtext': True,
 })
 
 import warnings

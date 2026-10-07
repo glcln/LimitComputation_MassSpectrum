@@ -16,13 +16,18 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import ROOT
+from matplotlib.legend_handler import HandlerTuple
 
 # Police LaTeX (Computer Modern) sans dépendre d'une installation LaTeX
 plt.rcParams.update({
-    'font.family': 'serif',
-    'font.serif': ['cmr10', 'Computer Modern Roman', 'DejaVu Serif'],
-    'mathtext.fontset': 'cm',
-    'axes.formatter.use_mathtext': True,   # évite le warning cmr10 sur le signe moins
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Helvetica', 'TeX Gyre Heros', 'Arial', 'DejaVu Sans'],
+    'mathtext.fontset': 'custom',
+    'mathtext.rm': 'sans',
+    'mathtext.it': 'sans:italic',
+    'mathtext.bf': 'sans:bold',
+    'mathtext.default': 'regular',
+    'axes.formatter.use_mathtext': True,
 })
 
 import warnings
@@ -34,7 +39,7 @@ warnings.filterwarnings("ignore", message="The value of the smallest subnormal")
 parser = OptionParser()
 parser.add_option('--unblind', action='store_true', default=False, dest='unblind',
                   help='Afficher la limite observée')
-parser.add_option('-l', '--lumi', type='string', default='105.8', dest='lumi',
+parser.add_option('-l', '--lumi', type='string', default='109', dest='lumi',
                   help='Luminosité intégrée en fb-1 (pour le label)')
 parser.add_option('-d', '--debug', type='int', default=0, dest='debug',
                   help='Niveau de verbosité')
@@ -46,23 +51,29 @@ parser.add_option('--splitEta', action='store_true', dest='splitEta', default=Fa
 parser.add_option('--onlyEta1', action='store_true', dest='onlyEta1', default=False,
                   help='Doit correspondre aux scripts de generation/run : region '
                        'centrale seule |eta|<1 (Eta1).')
+parser.add_option('--signal', dest='signal', default='gluino',
+                  type='choice', choices=['gluino', 'stop', 'stau'],
+                  help='Doit correspondre aux scripts de generation/run.')
 (options, args) = parser.parse_args()
 
 isCutAndCount = options.cac
 splitEta      = options.splitEta
-onlyEta1 = options.onlyEta1
+onlyEta1      = options.onlyEta1
+signalType    = options.signal
 
 # ---------------------------------------------------------------------------
 # Chemins  —  à adapter si nécessaire
 # ---------------------------------------------------------------------------
 regionBckg  = '9fp10'
-optionlabel = 'etaRebinPerso_Oldfit__PUppiMETcut'
-etalabeldir = 'Eta1_2p4'
+optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
+etalabeldir = 'Eta2p4'
+
+LIMITS_BASE = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/HSCPLimit/LimitComputation_MassSpectrum/Limits'
 
 # Meme etiquette de dossier que les scripts de generation et de run
 if splitEta:
     etaLabel   = 'split_Eta1_' + etalabeldir
-    etaDisplay = r'$|\eta|<1$ + $1<|\eta|<2.4$'   # joli libelle pour l'annotation
+    etaDisplay = r'$|\eta|<1$ & $1\leq|\eta|<2.4$'   # joli libelle pour l'annotation
 elif onlyEta1:
     etaLabel   = 'Eta1'
     etaDisplay = r'$|\eta|<1$'
@@ -70,29 +81,15 @@ else:
     etaLabel   = 'Eta2p4'
     etaDisplay = r'$|\eta|<2.4$'
 
-odir = 'MyNewDataCards/limit_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "") + '_' + optionlabel
-outPlot = os.path.join(odir, 'limits_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "") + '_' + optionlabel + '.pdf')
+odir = os.path.join(LIMITS_BASE, signalType, 'limit_shape_{}_{}{}_{}'.format(regionBckg, etaLabel, "_cutandcount" if isCutAndCount else "", optionlabel))
 
-
-# Masse en GeV → sera convertie en TeV pour l'axe X
-samples = [
-    ('Gluino1100_2024', 1100),
-    ('Gluino1200_2024', 1200),
-    ('Gluino1300_2024', 1300),
-    ('Gluino1400_2024', 1400),
-    ('Gluino1600_2024', 1600),
-    ('Gluino1800_2024', 1800),
-    ('Gluino2000_2024', 2000),
-    ('Gluino2200_2024', 2200),
-    ('Gluino2400_2024', 2400),
-    ('Gluino2600_2024', 2600),
-]
+outPlot = os.path.join(odir, 'limits_shape_{}_{}_{}{}_{}.pdf'.format(signalType, regionBckg, etaLabel, "_cutandcount" if isCutAndCount else "", optionlabel))
 
 # ---------------------------------------------------------------------------
-# Sections efficaces théoriques NNLO+NNLL gluino (pb) + incertitudes relatives
+# Sections efficaces théoriques NNLO+NNLL
 # ---------------------------------------------------------------------------
 # { masse_GeV : (xsec_pb, incertitude_relative_%) }
-theory_xsec = {
+theory_xsec_gluino = {
     1100: (2.450E-01, 0.1007),
     1200: (1.288E-01, 0.1074),
     1300: (6.978E-02, 0.1145),
@@ -104,6 +101,63 @@ theory_xsec = {
     2400: (2.627E-04, 0.4536),
     2600: (1.089E-04, 0.6161),
 }
+
+theory_xsec_stop = {
+    700: (9.905000E-02, 0.0640),
+    800: (4.193000E-02, 0.0698),
+    900: (1.903000E-02, 0.0778),
+    1000: (9.123000E-03, 0.0857),
+    1200: (2.373000E-03, 0.1076),
+    1400: (6.976000E-04, 0.1359),
+    1600: (2.236000E-04, 0.1770),
+    1800: (7.654000E-05, 0.2332),
+    2000: (2.752000E-05, 0.3111),
+    2200: (1.029000E-05, 0.4152),
+    2400: (3.957000E-06, 0.5556),
+    2600: (1.556000E-06, 0.7333),
+}
+
+theory_xsec_stau = {
+     247: (1.472533E-02, 0.0205),
+     308: (6.163604E-03, 0.0221),
+     432: (1.474467E-03, 0.0302),
+     557: (4.561581E-04, 0.0346),
+     651: (2.095727E-04, 0.0370),
+     745: (1.036057E-04, 0.0396),
+     871: (4.263775E-05, 0.0447),
+    1029: (1.526866E-05, 0.0520),
+    1218: (4.956323E-06, 0.0616),
+    1409: (1.715460E-06, 0.0732),
+    1599: (6.262536E-07, 0.0868),
+}
+
+SIGNAL_PLOT_CONFIG = {
+    'gluino': {
+        'label'  : 'Gluino',
+        'masses' : [1100, 1200, 1300, 1400, 1600, 1800, 2000, 2200, 2400, 2600],
+        'xsec'   : theory_xsec_gluino,
+        'xlabel' : r'$m_{\tilde{g}}$ [TeV]',
+        'ylim'   : (5e-6, 1.0),
+    },
+    'stop': {
+        'label'  : 'Stop',
+        'masses' : [700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600],
+        'xsec'   : theory_xsec_stop,
+        'xlabel' : r'$m_{\tilde{t}}$ [TeV]',
+        'ylim'   : (5e-7, 1.0),
+    },
+    'stau': {
+        'label'  : 'Stau',
+        'masses' : [247, 308, 432, 557, 651, 745, 871, 1029, 1218, 1409, 1599],
+        'xsec'   : theory_xsec_stau,
+        'xlabel' : r'$m_{\tilde{\tau}}$ [TeV]',
+        'ylim'   : (1e-7, 1.0),
+    },
+}
+
+sigCfg      = SIGNAL_PLOT_CONFIG[signalType]
+theory_xsec = sigCfg['xsec']          # le reste du script utilise ce nom
+samples     = [('{}{}_2024'.format(sigCfg['label'], m), m) for m in sigCfg['masses']]
 
 
 # ---------------------------------------------------------------------------
@@ -173,11 +227,12 @@ exp_p1  = np.array(exp_p1)
 exp_p2  = np.array(exp_p2)
 
 # Courbe théorique + bande d'incertitude
-theory_masses = np.array(sorted(theory_xsec.keys())) / 1000.0
-theory_vals   = np.array([theory_xsec[int(m * 1000)][0] for m in theory_masses])
-theory_unc    = np.array([theory_xsec[int(m * 1000)][1] for m in theory_masses])
-theory_up     = theory_vals * (1.0 + theory_unc)
-theory_dn     = theory_vals * (1.0 - theory_unc)
+theory_mass_gev = sorted(theory_xsec)
+theory_masses   = np.array(theory_mass_gev) / 1000.0
+theory_vals     = np.array([theory_xsec[m][0] for m in theory_mass_gev])
+theory_unc      = np.array([theory_xsec[m][1] for m in theory_mass_gev])
+theory_up       = theory_vals * (1.0 + theory_unc)
+theory_dn       = theory_vals * (1.0 - theory_unc)
 
 # ---------------------------------------------------------------------------
 # Plotting — style CMS-like avec matplotlib
@@ -187,27 +242,29 @@ fig, ax = plt.subplots(figsize=(8, 6))
 ax.set_yscale('log')
 
 # Bandes 2σ et 1σ
-ax.fill_between(masses, exp_m2, exp_p2,
-                color='#FFCC00', label=r'Expected $\pm 2\sigma$', linewidth=0)
-ax.fill_between(masses, exp_m1, exp_p1,
-                color='#00CC00', label=r'Expected $\pm 1\sigma$', linewidth=0)
+band95 = ax.fill_between(masses, exp_m2, exp_p2,
+                         color='#FFCC00', linewidth=0)
+band68 = ax.fill_between(masses, exp_m1, exp_p1,
+                         color='#00CC00', linewidth=0)
 
 # Médiane attendue
-ax.plot(masses, exp_med, 'k--', linewidth=2, label='Expected limit (median)')
+line_exp, = ax.plot(masses, exp_med, 'k--', linewidth=2)
 
 # Limite observée
+line_obs = None
 if options.unblind and len(obs_lim) > 0:
-    ax.plot(masses, np.array(obs_lim), 'k-', linewidth=2, marker='o',
-            markersize=4, label='Observed limit')
+    line_obs, = ax.plot(masses, np.array(obs_lim), 'k-', linewidth=2,
+                        marker='o', markersize=4)
 
 # Courbe théorique + bande d'incertitude
-ax.fill_between(theory_masses, theory_dn, theory_up,
-                color='royalblue', alpha=0.25, linewidth=0,
-                label=r'$\sigma^{\mathrm{NNLO+NNLL}}_{\mathrm{th}} \pm 1\sigma_{\mathrm{th}}$')
-ax.plot(theory_masses, theory_vals, 'b-', linewidth=2)
+band_th = ax.fill_between(theory_masses, theory_dn, theory_up,
+                          color='royalblue', alpha=0.25, linewidth=0)
+line_th, = ax.plot(theory_masses, theory_vals, 'b-', linewidth=2)
 
 # Ligne de masse exclue (intersection médiane × théorie)
 # Interpolation log-linéaire pour trouver le croisement
+Y_MIN, Y_MAX = sigCfg['ylim']
+
 try:
     log_exp  = np.log(exp_med)
     log_th   = np.interp(masses, theory_masses, np.log(theory_vals))
@@ -221,37 +278,53 @@ try:
         d0, d1 = diff[i], diff[i+1]
         x_cross = x0 - d0 * (x1 - x0) / (d1 - d0)
         y_cross = np.exp(np.interp(x_cross, masses, log_exp))
-        ax.axvline(x_cross, color='gray', linestyle=':', linewidth=1.5)
-        ax.text(x_cross + 0.02, y_cross * 1.5,
-                r'$m_{\tilde{g}} = %.2f$ TeV' % x_cross,
-                fontsize=9, color='gray', rotation=90, va='bottom')
+        ax.vlines(x_cross, Y_MIN, y_cross,
+                  color='gray', linestyle=':', linewidth=1.5)
+        ax.text(x_cross + 0.02, Y_MIN * 1.5,
+                r'$%.2f$ TeV' % x_cross,
+                fontsize=12, color='gray', rotation=90, va='bottom')
 except Exception as e:
     print("WARNING: calcul d'intersection échoué : {}".format(e))
 
 # Axes
-ax.set_xlabel(r'$m_{\tilde{g}}$ [TeV]', fontsize=13, labelpad=8)
-ax.set_ylabel(r'95% CL upper limit on $\sigma$ [pb]', fontsize=13, labelpad=8)
+ax.set_xlabel(sigCfg['xlabel'], fontsize=17, labelpad=8, ha='right', x=1.0)
+ax.set_ylabel(r'95% CL upper limit on $\sigma$ [pb]', fontsize=17, labelpad=8, ha='right', y=1.0)
 ax.set_xlim(masses[0] - 0.05, masses[-1] + 0.1)
-ax.set_ylim(5e-6, 1.0)
+ax.set_ylim(Y_MIN, Y_MAX)
 ax.tick_params(axis='both', which='both', direction='in',
-               top=True, right=True, labelsize=11)
+               top=True, right=True, labelsize=14)
 
 # Légende
-ax.legend(loc='upper right', fontsize=10, frameon=True, framealpha=0.9)
+handles = [line_exp]
+labels  = ['Expected']
+
+if line_obs is not None:
+    handles.append(line_obs)
+    labels.append('Observed')
+
+handles += [band68, band95, (line_th, band_th)]
+labels  += [r'$\pm 68\%$',
+            r'$\pm 95\%$',
+            r'$\sigma^{\mathrm{NNLO+NNLL}}_{\mathrm{th}} \pm 1\sigma_{\mathrm{th}}$']
+
+ax.legend(handles, labels, loc='upper right', fontsize=14,
+          frameon=True, framealpha=0.9,
+          handler_map={tuple: HandlerTuple(ndivide=1)})
 
 # Labels CMS
-ax.text(0.01, 1.02, r'$\bf{CMS}$' + r' $\it{Preliminary}$',
-        transform=ax.transAxes, fontsize=13, va='bottom')
-ax.text(0.99, 1.02,
-        r'$\sqrt{s} = 13.6\ \mathrm{TeV},\ ' + options.lumi + r'\ \mathrm{fb}^{-1}$',
-        transform=ax.transAxes, fontsize=11, va='bottom', ha='right')
+ax.text(0, 1.04, r'$\mathit{Private\ Work\ (CMS\ data)}$',
+            transform=ax.transAxes, fontsize=16, verticalalignment='top')
+ax.text(1, 1.05, r'109 fb$^{-1}$ (13.6 TeV)',
+            transform=ax.transAxes, fontsize=16,
+            verticalalignment='top', horizontalalignment='right')
 
 # Annotation shape analysis
-ax.text(0.03, 0.05,
-        ('Cut and Count method - ' if isCutAndCount else 'Shape Analysis - ') + regionBckg + ' (' + etaDisplay + ')\n'
-        r'$pp \rightarrow \tilde{g}\tilde{g}$, stable gluino (R-hadron)',
-        transform=ax.transAxes, fontsize=9, va='bottom',
-        bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7))
+ax.text(0.03, 0.09,
+        ('cut-and-count method' if isCutAndCount else 'shape analysis'),
+        transform=ax.transAxes, fontsize=16, va='bottom',fontweight='bold')
+ax.text(0.03, 0.03,
+        etaDisplay,
+        transform=ax.transAxes, fontsize=16, va='bottom',fontweight='bold')
 
 fig.tight_layout()
 fig.savefig(outPlot, dpi=150, bbox_inches='tight')

@@ -36,22 +36,35 @@ if __name__ == '__main__':
     parser.add_option('--onlyEta1', action='store_true', dest='onlyEta1', default=False,
                   help='Doit correspondre au script de generation : region centrale '
                        'seule |eta|<1 (Eta1).')
+    parser.add_option('--signal', dest='signal', default='gluino',
+                      type='choice', choices=['gluino', 'stop', 'stau'],
+                      help='Doit correspondre au script de generation : gluino, stop ou stau.')
 
     (options, args) = parser.parse_args()
-    debug = options.debug
-    isCutAndCount = options.cac
-    splitEta      = options.splitEta
-    onlyEta1 = options.onlyEta1
+    debug           = options.debug
+    isCutAndCount   = options.cac
+    splitEta        = options.splitEta
+    onlyEta1        = options.onlyEta1
+    signalType      = options.signal
 
     if (isCutAndCount): 
         print("Running cut and count limits")
     else :
         print("Running shape limits")
 
+    DATACARDS_BASE = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/HSCPLimit/LimitComputation_MassSpectrum/Datacards'
+    LIMITS_BASE    = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/HSCPLimit/LimitComputation_MassSpectrum/Limits'
+
+    SIGNAL_SAMPLES = {
+        'gluino': ('Gluino', [1100, 1200, 1300, 1400, 1600, 1800, 2000, 2200, 2400, 2600]),
+        'stop'  : ('Stop',   [700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600]),
+        'stau'  : ('Stau',   [247, 308, 432, 557, 651, 745, 871, 1029, 1218, 1409, 1599]),
+    }
+
     # Doit correspondre aux parametres du script de generation des datacards
     regionBckg  = '9fp10'
-    optionlabel = 'etaRebinPerso_Oldfit__PUppiMETcut'
-    etalabeldir = 'Eta1_2p4'
+    optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
+    etalabeldir = 'Eta2p4'
     
 
     # Meme logique d'etiquette que dans le script de generation
@@ -62,27 +75,22 @@ if __name__ == '__main__':
     else:
         etaLabel = 'Eta2p4'
 
-    idir = 'MyNewDataCards/datacards_shape_{}_{}_{}'.format(regionBckg, etaLabel, optionlabel)
-    odir = 'MyNewDataCards/limit_shape_{}_{}'.format(regionBckg, etaLabel) + ("_cutandcount" if isCutAndCount else "") + '_' + optionlabel
+    idir = os.path.join(DATACARDS_BASE, signalType, 'shape_{}_{}_{}'.format(regionBckg, etaLabel, optionlabel))
+
+    odir = os.path.join(LIMITS_BASE, signalType, 'limit_shape_{}_{}{}_{}'.format(regionBckg, etaLabel, "_cutandcount" if isCutAndCount else "", optionlabel))
     if options.limits == "CLS":
         odir += "_CLS"
 
-    os.makedirs(idir, exist_ok=True)
+    if not os.path.isdir(idir):
+        sys.exit("Datacard directory not found: {}".format(idir))
     os.makedirs(odir, exist_ok=True)
+    print("Datacards: {}".format(idir))
+    print("Limits   : {}".format(odir))
 
     # Doit correspondre aux cles de fpath{} dans le script de generation
-    samples = [
-        'Gluino1100_2024',
-        'Gluino1200_2024',
-        'Gluino1300_2024',
-        'Gluino1400_2024',
-        'Gluino1600_2024',
-        'Gluino1800_2024',
-        'Gluino2000_2024',
-        'Gluino2200_2024',
-        'Gluino2400_2024',
-        'Gluino2600_2024',
-    ]
+    sigLabel, masses = SIGNAL_SAMPLES[signalType]
+    samples = ['{}{}_2024'.format(sigLabel, m) for m in masses]
+    print("Signal sample: {} -> {} points de masse".format(signalType, len(samples)))
 
     def task(sample):
         name = sample
