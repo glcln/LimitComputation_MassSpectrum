@@ -1,30 +1,43 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
-Plot recapitulatif des limites, une figure par signal (gluino, stop, stau).
+Summary plot of the expected limits, one figure per signal (gluino, stop,
+stau).
 
-Chaque figure contient :
-  - les 3 limites attendues en shape : |eta|<1, |eta|<2.4, split |eta|<1 & 1<=eta<2.4
-  - la limite observee de l'analyse Run 2 (HEPData)
-  - les xsec theoriques NNLO+NNLL a 13 TeV (Run 2) et 13.6 TeV (Run 3)
-  - les lignes verticales d'exclusion (croisement limite / xsec) :
-    Run 2 en gris, meilleure categorie Run 3 dans sa propre couleur
+Each figure shows:
+  - the median expected limits of the three eta configurations: |eta|<1,
+    |eta|<2.4 and the split |eta|<1 & 1<=|eta|<2.4 (shape analysis, or
+    cut-and-count with --cac)
+  - the observed limit of the Run 2 analysis (HEPData)
+  - the NNLO+NNLL theoretical cross sections at 13 TeV (Run 2) and 13.6 TeV
+    (Run 3), with their uncertainty bands
+  - the vertical exclusion lines, where a limit crosses its theoretical cross
+    section: Run 2 in gray, and the best Run 3 configuration in its own colour
 
-A lancer apres shape_runAll.py (les .txt de limites doivent deja exister).
+The script also prints the excluded masses of each signal.
 
-Format attendu des fichiers .txt :
-# mass  exp_m2sigma  exp_m1sigma  exp_median  exp_p1sigma  exp_p2sigma
+Input: the limit tables written by DrawDatacards.py,
+    <LIMITS_BASE>/<signal>/limit_shape_<regionBckg>_<etaLabel>[_cutandcount]_<label>/
+        limits_shape_<signal>_<regionBckg>_<etaLabel>[_cutandcount]_<label>.txt
+with one line per mass point:
+    mass  exp_m2sigma  exp_m1sigma  exp_median  exp_p1sigma  exp_p2sigma
+Only the mass and the median expected limit are used. An eta configuration
+whose table is missing is left out, with a warning.
 
-Usage :
-    python shape_drawCompare.py
-    python shape_drawCompare.py --signal stau
-    python shape_drawCompare.py --label CorrelationAdded_SigmaPtoverPt_0p5_EoP_0p1
-    python shape_drawCompare.py --cac            # meme plot en cut-and-count
-    python shape_drawCompare.py --noVLines       # sans les lignes verticales
+Output
+    <outDir>/ExpectedCompare_<signal>_<shape|cutandcount>_<label>.pdf
+The default <outDir> is the Results/ directory next to this script, and
+LIMITS_BASE is the Limits/ directory next to it.
+
+Usage:
+    python3 DrawCompareSignal.py                   # all signals, default option
+    python3 DrawCompareSignal.py --signal stau
+    python3 DrawCompareSignal.py --optionLabel v2  # other option (--label is a synonym)
+    python3 DrawCompareSignal.py --cac             # same plot for the cut-and-count limits
+    python3 DrawCompareSignal.py --noVLines        # without the vertical lines
 """
 
 import os
 import sys
+import warnings
 from optparse import OptionParser
 
 import numpy as np
@@ -35,6 +48,8 @@ from matplotlib.lines import Line2D
 import matplotlib.patches as mpatches
 from matplotlib.legend_handler import HandlerTuple
 
+# Sans-serif (Helvetica-like) fonts for the text and the math, close to the
+# ROOT CMS style and without needing a LaTeX installation
 plt.rcParams.update({
     'font.family': 'sans-serif',
     'font.sans-serif': ['Helvetica', 'TeX Gyre Heros', 'Arial', 'DejaVu Sans'],
@@ -46,34 +61,39 @@ plt.rcParams.update({
     'axes.formatter.use_mathtext': True,
 })
 
-import warnings
 warnings.filterwarnings("ignore", message="The value of the smallest subnormal")
 
 
 # ---------------------------------------------------------------------------
-# CONFIG
+## CONFIGURATION
 # ---------------------------------------------------------------------------
+# Tags of the limit directories and tables; must match DrawDatacards.py.
+# LABEL_DEFAULT is the default optionlabel (--optionLabel); the other one is 'v2'.
+regionBckg    = '9fp10'
 LABEL_DEFAULT = "SigmaPtoverPt_0p5_EoP_0p1_v2"
-#LABEL_DEFAULT = "v2"
-BASE_DIR      = "Limits"
-OUTDIR_DEFAULT = "."
 
+# Root of the limit tables and default output directory: the Limits/ and
+# Results/ directories next to this script
+BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+LIMITS_BASE    = os.path.join(BASE_DIR, 'Limits')
+OUTDIR_DEFAULT = os.path.join(BASE_DIR, 'Results')
+
+# Labels drawn above the frame
 LUMI_TEXT = r'109 fb$^{-1}$ (13.6 TeV)'
 CMS_TEXT  = r'$\mathit{Private\ Work\ (CMS\ data)}$'
 
-# (cle, tag dans le nom de fichier, label legende, couleur, marker)
+# Eta configurations: (key, etaLabel in the file names, legend label, colour, marker)
 CASES = [
     ('Eta1',     'Eta1',                r'$|\eta|<1$',                   'black', 'o'),
     ('Eta2p4',   'Eta2p4',              r'$|\eta|<2.4$',                 'red',   's'),
-    ('Eta1_2p4', 'split_Eta1_Eta1_2p4', r'$|\eta|<1$ & $1\leq\eta<2.4$', 'green', '^'),
+    ('Eta1_2p4', 'split_Eta1_Eta1_2p4', r'$|\eta|<1$ & $1\leq|\eta|<2.4$', 'green', '^'),
 ]
 
 
-# ---------------------------------------------------------------------------
-# Limites de l'analyse precedente : https://www.hepdata.net/record/ins2840007
-# (HEPData Fig.6) -- limites observees
-# ---------------------------------------------------------------------------
-prev_gluino_mass = {  # masses en TeV
+# Observed limits of the previous (Run 2) analysis,
+# https://www.hepdata.net/record/ins2840007 (HEPData, Fig. 6):
+# { mass : cross-section limit [pb] }
+prev_gluino_mass = {  # masses in TeV
     1.0: 0.00034599,
     1.4: 0.00043043,
     1.6: 0.00049703,
@@ -84,7 +104,7 @@ prev_gluino_mass = {  # masses en TeV
     2.6: 0.00085929,
 }
 
-prev_stop_mass = {  # masses en TeV
+prev_stop_mass = {  # masses in TeV
     1.0: 0.00028836,
     1.2: 0.000279,
     1.4: 0.00029444,
@@ -96,7 +116,7 @@ prev_stop_mass = {  # masses en TeV
     2.6: 0.00039226,
 }
 
-prev_stau_mass = {  # masses en GeV (converties automatiquement)
+prev_stau_mass = {  # masses in GeV (converted by to_TeV)
     308: 0.0011409,
     432: 0.0002058,
     557: 0.00015886,
@@ -107,9 +127,8 @@ prev_stau_mass = {  # masses en GeV (converties automatiquement)
 }
 
 
-# ---------------------------------------------------------------------------
-# Sections efficaces theoriques : masse [GeV] -> (xsec [pb], incertitude rel.)
-# ---------------------------------------------------------------------------
+# NNLO+NNLL theoretical cross sections, at 13 TeV (Run2) and 13.6 TeV (Run3):
+# { mass [GeV] : (cross section [pb], relative uncertainty) }
 theory_xsec_gluino_Run2 = {
     1400: (0.0284,   0.1231),
     1600: (0.00887,  0.1475),
@@ -191,9 +210,8 @@ theory_xsec_stau_Run3 = {
     1599: (6.262536E-07, 0.0868),
 }
 
-# ---------------------------------------------------------------------------
-# Config par signal (bornes d'axes a ajuster au besoin)
-# ---------------------------------------------------------------------------
+# Per-signal configuration: axis title, theory tables, Run 2 limit and axis
+# ranges (x in TeV, y in pb)
 SIGNALS = {
     'gluino': {
         'xlabel'      : r'$m_{\tilde{g}}$ [TeV]',
@@ -224,40 +242,38 @@ SIGNALS_ALL = ['gluino', 'stop', 'stau']
 
 
 # ---------------------------------------------------------------------------
-# Resolution des chemins de fichiers de limites
+## FUNCTIONS
 # ---------------------------------------------------------------------------
+# --- inputs ------------------------------------------------------------------
 def limit_file(signal, tag, label, cac=False):
-    """Cherche le .txt de limites en essayant les conventions de nommage."""
-    mode = 'cutandcount_' if cac else ''
-    stems = [
-        "{0}_{1}{2}".format(tag, mode, label),   # signal avant le tag
-        "{0}_{1}{2}".format(tag, mode, label),   # signal apres le tag
-        "{0}_{1}{2}".format(tag, mode, label),               # sans signal (legacy)
-    ]
-    tried = []
-    for dstem in stems:
-        d = "{0}/{1}/limit_shape_9fp10_{2}".format(BASE_DIR, signal, dstem)
-        for fstem in stems:
-            path = "{0}/limits_shape_{1}_9fp10_{2}.txt".format(d, signal, fstem)
-            tried.append(path)
-            if os.path.isfile(path):
-                return path
-    print("WARNING: aucun fichier de limites pour {0} / {1}".format(signal, tag))
-    print("         essaye (entre autres) : {0}".format(tried[0]))
+    """
+    Path of the limit table of one signal and eta configuration, as written by
+    DrawDatacards.py. Returns None, with a warning, if it does not exist.
+    """
+    stem = "{0}_{1}_{2}{3}".format(regionBckg, tag, 'cutandcount_' if cac else '', label)
+    path = os.path.join(LIMITS_BASE, signal, "limit_shape_{0}".format(stem),
+                        "limits_shape_{0}_{1}.txt".format(signal, stem))
+    if os.path.isfile(path):
+        return path
+    print("WARNING: no limit table for {0} / {1}: {2}".format(signal, tag, path))
     return None
 
 
-# ---------------------------------------------------------------------------
-# Chargement / helpers
-# ---------------------------------------------------------------------------
 def to_TeV(masses):
-    """Les fichiers/dicos peuvent etre en GeV : on normalise en TeV."""
+    """
+    Masses as an array in TeV. Tables and files may be in GeV or in TeV:
+    values above 10 are taken as GeV.
+    """
     masses = np.asarray(masses, dtype=float)
     return masses / 1000.0 if np.max(masses) > 10.0 else masses
 
 
 def load_limits(fname):
-    """Retourne (masses [TeV], limite mediane attendue [pb])."""
+    """
+    Read a limit table. Returns (masses [TeV], median expected limit [pb])
+    sorted by mass, without the points whose limit is not positive, or
+    (None, None) if there is no file.
+    """
     if fname is None or not os.path.isfile(fname):
         return None, None
     data = np.loadtxt(fname, comments='#')
@@ -270,6 +286,7 @@ def load_limits(fname):
 
 
 def theory_arrays(xsec_dict):
+    """(masses [TeV], cross sections [pb], relative uncertainties) of a theory table."""
     keys = sorted(xsec_dict.keys())
     m   = to_TeV(keys)
     v   = np.array([xsec_dict[k][0] for k in keys])
@@ -278,14 +295,14 @@ def theory_arrays(xsec_dict):
 
 
 def prev_arrays(prev_dict):
+    """(masses [TeV], limits [pb]) of a Run 2 limit table."""
     keys = sorted(prev_dict.keys())
     return to_TeV(keys), np.array([prev_dict[k] for k in keys])
 
 
-# ---------------------------------------------------------------------------
-# Dessin
-# ---------------------------------------------------------------------------
+# --- drawing -----------------------------------------------------------------
 def draw_xsec(ax, xsec_dict, color, label):
+    """Draw a theory curve with its uncertainty band; returns a legend handle."""
     m, v, unc = theory_arrays(xsec_dict)
     ax.fill_between(m, v * (1.0 - unc), v * (1.0 + unc),
                     color=color, alpha=0.25, linewidth=0)
@@ -294,6 +311,7 @@ def draw_xsec(ax, xsec_dict, color, label):
 
 
 def draw_prev_limit(ax, prev_dict):
+    """Draw the Run 2 observed limit; returns a legend handle."""
     pm, pv = prev_arrays(prev_dict)
     ax.plot(pm, pv, linestyle='-', linewidth=1.5, marker='o', markersize=4,
             color='gray', alpha=0.8)
@@ -303,15 +321,22 @@ def draw_prev_limit(ax, prev_dict):
 
 
 def draw_limit(ax, masses, values, color, marker, cac=False):
+    """Draw a Run 3 expected limit: dashed for shape, solid for cut-and-count."""
     ax.plot(masses, values, linestyle='-' if cac else '--', linewidth=2,
             marker=marker, markersize=5, color=color)
 
 
-# ---------------------------------------------------------------------------
-# Intersection limite / theorie (interpolation lineaire en log-log)
-# ---------------------------------------------------------------------------
+# --- crossing of a limit with the theory curve --------------------------------
 def find_intersection(lim_m, lim_v, th_m, th_v):
-    """Dernier croisement (masse la plus haute) entre limite et theorie."""
+    """
+    Crossing of a limit curve with a theory curve, both interpolated linearly
+    in log(cross section) versus mass on a fine grid over their common mass
+    range. When they cross several times, the crossing at the highest mass is
+    kept.
+
+    Returns (mass, theory cross section at that mass), or (None, None) if the
+    curves do not cross or have no common mass range.
+    """
     lo = max(lim_m.min(), th_m.min())
     hi = min(lim_m.max(), th_m.max())
     if lo >= hi:
@@ -333,7 +358,10 @@ def find_intersection(lim_m, lim_v, th_m, th_v):
 
 
 def draw_exclusion_line(ax, m_int, y_int, color, xlim, ylim):
-    """Ligne verticale pointillee jusqu'a l'axe X + valeur en texte vertical."""
+    """
+    Dotted vertical line from the x axis up to the crossing point, with the
+    mass written vertically next to it. Does nothing if m_int is None.
+    """
     if m_int is None:
         return
     ax.vlines(m_int, ylim[0], y_int,
@@ -344,26 +372,31 @@ def draw_exclusion_line(ax, m_int, y_int, color, xlim, ylim):
             verticalalignment='bottom', horizontalalignment='right')
 
 
-# ---------------------------------------------------------------------------
-# Figure
-# ---------------------------------------------------------------------------
+# --- figure ------------------------------------------------------------------
 def make_plot(signal, label, cac=False, outdir=OUTDIR_DEFAULT, vlines=True):
+    """
+    Draw and save the figure of one signal.
+
+    Returns {'run2': Run 2 excluded mass, 'run3': best Run 3 excluded mass,
+    'run3_case': key of the eta configuration giving it} (masses in TeV, None
+    when there is no crossing), or None if no Run 3 limit was found.
+    """
     cfg = SIGNALS[signal]
     xlim, ylim = cfg['xlim'], cfg['ylim']
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.set_yscale('log')
 
-    # 1) xsec theoriques
+    # 1) theoretical cross sections
     h_xsec2 = draw_xsec(ax, cfg['theory_run2'], 'darkorange',
                         r'$\sigma^{\mathrm{NNLO+NNLL}}_{\mathrm{th}}$ (13 TeV) $\pm 1\sigma_{\mathrm{th}}$')
     h_xsec3 = draw_xsec(ax, cfg['theory_run3'], 'royalblue',
                         r'$\sigma^{\mathrm{NNLO+NNLL}}_{\mathrm{th}}$ (13.6 TeV) $\pm 1\sigma_{\mathrm{th}}$')
 
-    # 2) limite Run 2
+    # 2) Run 2 limit
     h_prev = draw_prev_limit(ax, cfg['prev'])
 
-    # 3) limites Run 3 (une par categorie en eta)
+    # 3) Run 3 limits (one per eta configuration)
     drawn = []
     for key, tag, leg, color, marker in CASES:
         lm, lv = load_limits(limit_file(signal, tag, label, cac))
@@ -373,25 +406,27 @@ def make_plot(signal, label, cac=False, outdir=OUTDIR_DEFAULT, vlines=True):
         drawn.append((key, leg, color, marker, lm, lv))
 
     if not drawn:
-        print("Aucune limite trouvee pour {0} -> figure ignoree".format(signal))
+        print("No limit found for {0} -> figure skipped".format(signal))
         plt.close(fig)
         return None
 
     # -----------------------------------------------------------------------
-    # Lignes verticales d'exclusion
+    # Vertical exclusion lines
     # -----------------------------------------------------------------------
     summary = {'run2': None, 'run3': None, 'run3_case': None}
 
     th2_m, th2_v, _ = theory_arrays(cfg['theory_run2'])
     th3_m, th3_v, _ = theory_arrays(cfg['theory_run3'])
 
+    # Run 2: observed limit against the 13 TeV cross section
     pm, pv = prev_arrays(cfg['prev'])
     m2, y2 = find_intersection(pm, pv, th2_m, th2_v)
     summary['run2'] = m2
     if vlines:
         draw_exclusion_line(ax, m2, y2, 'gray', xlim, ylim)
 
-    best = None  # (m_int, y_int, couleur, cas)
+    # Run 3: the eta configuration excluding the highest mass
+    best = None  # (m_int, y_int, colour, key)
     for key, leg, color, marker, lm, lv in drawn:
         m3, y3 = find_intersection(lm, lv, th3_m, th3_v)
         if m3 is not None and (best is None or m3 > best[0]):
@@ -402,7 +437,7 @@ def make_plot(signal, label, cac=False, outdir=OUTDIR_DEFAULT, vlines=True):
             draw_exclusion_line(ax, best[0], best[1], best[2], xlim, ylim)
 
     # -----------------------------------------------------------------------
-    # Habillage
+    # Axes, legends and labels
     # -----------------------------------------------------------------------
     ax.set_xlabel(cfg['xlabel'], fontsize=17, labelpad=8, ha='right', x=1.0)
     ax.set_ylabel(r'95% CL upper limit on $\sigma$ [pb]',
@@ -410,7 +445,7 @@ def make_plot(signal, label, cac=False, outdir=OUTDIR_DEFAULT, vlines=True):
     ax.tick_params(axis='both', which='both', direction='in',
                    top=True, right=True, labelsize=14)
 
-    # Legende 1 : categories en eta
+    # Legend 1: eta configurations
     ls = '-' if cac else '--'
     handles_eta = [Line2D([0], [0], color=c, marker=mk, linestyle=ls,
                           linewidth=2, markersize=6, label=leg)
@@ -420,7 +455,8 @@ def make_plot(signal, label, cac=False, outdir=OUTDIR_DEFAULT, vlines=True):
                      title=title_eta, title_fontsize=12)
     ax.add_artist(leg1)
 
-    # Legende 2 : reference Run 2 + xsec theoriques
+    # Legend 2: Run 2 reference and theoretical cross sections (line on top of
+    # its band)
     grouped, labels = [], []
     for h in (h_xsec3, h_prev, h_xsec2):
         labels.append(h.get_label())
@@ -449,31 +485,32 @@ def make_plot(signal, label, cac=False, outdir=OUTDIR_DEFAULT, vlines=True):
     output = os.path.join(outdir, "ExpectedCompare_{0}_{1}_{2}.pdf".format(signal, mode, label))
     fig.savefig(output, dpi=150)
     plt.close(fig)
-    print("Figure sauvegardee : {0}".format(output))
+    print("Figure saved: {0}".format(output))
     return summary
 
 
 # ---------------------------------------------------------------------------
-# MAIN
+## MAIN
 # ---------------------------------------------------------------------------
 def main():
     parser = OptionParser()
     parser.add_option('--signal', dest='signals', default=','.join(SIGNALS_ALL),
-                      help="Signaux a tracer, separes par des virgules (defaut: tous).")
-    parser.add_option('--label', dest='label', default=LABEL_DEFAULT,
-                      help="optionlabel utilise dans les noms de fichiers.")
+                      help="Comma-separated list of signals to plot (default: all).")
+    parser.add_option('--optionLabel', '--label', dest='label', default=LABEL_DEFAULT,
+                      help="optionlabel of the limits to plot (default: %default).")
     parser.add_option('--outDir', dest='outdir', default=OUTDIR_DEFAULT,
-                      help="Repertoire de sortie des figures.")
+                      help="Output directory of the figures (default: Results/ next "
+                           "to this script).")
     parser.add_option('--cac', action='store_true', dest='cac', default=False,
-                      help="Trace les limites cut-and-count au lieu du shape.")
+                      help="Plot the cut-and-count limits instead of the shape ones.")
     parser.add_option('--noVLines', action='store_false', dest='vlines', default=True,
-                      help="Desactive les lignes verticales d'exclusion.")
+                      help="Do not draw the vertical exclusion lines.")
     (opts, _) = parser.parse_args()
 
     signals = [s.strip() for s in opts.signals.split(',') if s.strip()]
     for s in signals:
         if s not in SIGNALS:
-            sys.exit("Signal inconnu : {0} (attendu : {1})".format(s, SIGNALS_ALL))
+            sys.exit("Unknown signal: {0} (expected: {1})".format(s, SIGNALS_ALL))
 
     results = {}
     for s in signals:
@@ -483,7 +520,7 @@ def main():
         results[s] = make_plot(s, opts.label, opts.cac, opts.outdir, opts.vlines)
 
     print("\n" + "=" * 70)
-    print("  Masses exclues (croisement limite / xsec theorique)")
+    print("  Excluded masses (crossing of the limit with the theoretical cross section)")
     print("=" * 70)
     for s in signals:
         r = results.get(s)

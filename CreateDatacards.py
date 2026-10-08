@@ -18,15 +18,15 @@ signal, background and observed yields in the mass window of each mass point.
 Eta configurations (--splitEta and --onlyEta1 are mutually exclusive)
     (default)     one category, full tracker |eta| < 2.4     etaLabel = 'Eta2p4'
     --onlyEta1    one category, central region |eta| < 1     etaLabel = 'Eta1'
-    --splitEta    two categories, central region 'Eta1' and the forward region
-                  named by the etalabeldir setting (e.g. 'Eta1_2p4')
-                                          etaLabel = 'split_Eta1_<etalabeldir>'
+    --splitEta    two categories, central |eta| < 1 ('Eta1') and forward
+                  1 < |eta| < 2.4 ('Eta1_2p4')    etaLabel = 'split_Eta1_Eta1_2p4'
 
 Inputs
     signal        <BASE_SIGNAL_DIR><dir><pattern>, one file per mass point
                   (see SIGNAL_CONFIG)
-    background    <idirData>JetMET2024_V<version>_<eta><option>_<variation>.root,
-                  one file per variation (see BKG_FILE_SUFFIX)
+    background    one file per variation (see BKG_FILE_SUFFIX), in
+                  <BASE_BKG_DIR>data2024_V<version>__<regionBckg>_<optionlabel>/<etaDir>/
+                  and named JetMET2024_V<version>_<eta><option>_<variation>.root
 
 Output directory
     <DATACARDS_BASE>/<signal>/shape_<regionBckg>_<etaLabel>_<optionlabel>/
@@ -43,18 +43,17 @@ the datacards can be run from any directory, but moving them requires editing
 that line.
 
 All analysis settings are hardcoded in the CONFIGURATION section below. The
-etalabeldir, optionlabel and optionlabelForFile settings are rewritten in
-place by the driver shape_ProduceLimitsForDifferentEtaCategory.py. regionBckg,
-etalabeldir and optionlabel must have the same values in shape_runDatacard.py
-and shape_drawDatacard.py, which rebuild the directory names from them.
+optionlabel and optionlabelForFile settings are rewritten in place by the
+driver shape_ProduceLimitsForDifferentEtaCategory.py. regionBckg and
+optionlabel must have the same values in shape_runDatacard.py and
+shape_drawDatacard.py, which rebuild the directory names from them.
 
 Usage:
-    python3 shape_createDatacard.py                           # gluino, full tracker, shape
-    python3 shape_createDatacard.py --cac --signal stau       # cut-and-count, stau
-    python3 shape_createDatacard.py --unblind                 # with the observed data
-    # the next two need etalabeldir set accordingly (see CONFIGURATION)
-    python3 shape_createDatacard.py --onlyEta1 --signal stop  # central region, stop
-    python3 shape_createDatacard.py --splitEta                # two eta categories
+    python3 CreateDatacards.py                           # gluino, full tracker, shape
+    python3 CreateDatacards.py --splitEta                # two eta categories
+    python3 CreateDatacards.py --onlyEta1 --signal stop  # central region, stop
+    python3 CreateDatacards.py --cac --signal stau       # cut-and-count, stau
+    python3 CreateDatacards.py --unblind                 # with the observed data
 """
 
 from optparse import OptionParser
@@ -105,19 +104,14 @@ versionData = '12p35'     # version tag of the background prediction files
 regionBckg  = '9fp10'     # region tag, part of histogram and directory names
 channel     = 'Ch2024'    # base name of the Combine bins
 
-# The three settings below are rewritten in place by the driver
+# The two settings below are rewritten in place by the driver
 # shape_ProduceLimitsForDifferentEtaCategory.py, which looks for one-line,
 # single-quoted assignments: keep that form, and a single assignment of each
 # in this file.
-#   etalabeldir        : sub-directory of the background prediction files and,
-#                        with --splitEta, name of the forward eta region.
-#                        The driver uses 'Eta2p4' for the full tracker, 'Eta1'
-#                        with --onlyEta1 and 'Eta1_2p4' with --splitEta.
 #   optionlabel        : tag of the background prediction, part of the input
 #                        and output directory names
 #   optionlabelForFile : the same option as it appears in the file and
 #                        histogram names ('' when there is none)
-etalabeldir = 'Eta2p4'
 optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
 optionlabelForFile = '_SigmaPtoverPt_0p5_EoP_0p1'
 
@@ -130,10 +124,6 @@ BASE_SIGNAL_DIR = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysi
 
 # Root of the background prediction files
 BASE_BKG_DIR = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/macros/'
-
-# Directory of the background prediction files. With --splitEta the files of
-# both categories are read from this same directory.
-idirData = BASE_BKG_DIR + 'data2024_V' + versionData + '__' + regionBckg + '_' + optionlabel + '/' + etalabeldir + '/'
 
 # Per-signal configuration:
 #   dir     : directory of the signal histogram files
@@ -784,21 +774,26 @@ def write_datacard(outDataCardsDir, modelName, rootFileName, categories,
 
 if __name__ == '__main__':
 
-    # --- Eta regions and output label, from the command-line flags ---
+    # --- Eta configuration, from the command-line flags ---
+    #   etaRegions : eta regions, one Combine category each
+    #   etaLabel   : tag of the configuration in the output directory name
+    #   etaDir     : sub-directory of the background prediction files
     if splitEta:
-        # The forward region must be disjoint from the central one
-        if etalabeldir in ('Eta2p4', 'Eta1'):
-            sys.exit("--splitEta needs etalabeldir set to the forward eta region "
-                     "(e.g. 'Eta1_2p4'), not '{}': the two categories would "
-                     "overlap.".format(etalabeldir))
-        etaRegions = ['Eta1', etalabeldir]    # central |eta|<1 , forward 1<|eta|<2.4
-        etaLabel   = 'split_Eta1_' + etalabeldir
+        etaRegions = ['Eta1', 'Eta1_2p4']    # central |eta|<1 , forward 1<|eta|<2.4
+        etaLabel   = 'split_Eta1_Eta1_2p4'
+        etaDir     = 'Eta1_2p4'
     elif onlyEta1:
         etaRegions = ['Eta1']                # central region only, |eta|<1
         etaLabel   = 'Eta1'
+        etaDir     = 'Eta1'
     else:
         etaRegions = ['Eta2p4']              # full tracker, |eta|<2.4
         etaLabel   = 'Eta2p4'
+        etaDir     = 'Eta2p4'
+
+    # Directory of the background prediction files. With --splitEta the files of
+    # both categories are read from this same directory.
+    idirData = BASE_BKG_DIR + 'data2024_V' + versionData + '__' + regionBckg + '_' + optionlabel + '/' + etaDir + '/'
 
     outDataCardsDir = os.path.join(DATACARDS_BASE, signalType, 'shape_{}_{}_{}'.format(regionBckg, etaLabel, optionlabel)) + os.sep
     os.makedirs(outDataCardsDir, exist_ok=True)
@@ -853,7 +848,7 @@ if __name__ == '__main__':
             mass_plot = load_bkg_histograms(fpathPred, regionBckg)
             if 'nominal' not in mass_plot:
                 sys.exit("Nominal background prediction not found for {}: {}\n"
-                         "(check etalabeldir, optionlabel and optionlabelForFile)".format(eta, fpathPred['nominal']))
+                         "(check optionlabel and optionlabelForFile)".format(eta, fpathPred['nominal']))
 
             # --- DATA of this eta region ---
             # Blinded (default): the nominal background prediction stands in

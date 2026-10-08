@@ -1,5 +1,5 @@
 """
-Run Combine on the datacards written by shape_createDatacard.py.
+Run Combine on the datacards written by CreateDatacards.py.
 
 For one signal model (gluino, stop or stau) and one eta configuration, the
 script runs `combine -M AsymptoticLimits` on every datacard found in the input
@@ -19,27 +19,25 @@ Output
 DATACARDS_BASE and LIMITS_BASE are the Datacards/ and Limits/ directories next
 to this script.
 
---signal, --splitEta, --onlyEta1 and the hardcoded regionBckg, optionlabel and
-etalabeldir settings must be the same as in shape_createDatacard.py: the
-directory names are rebuilt here from the same rules. optionlabel and
-etalabeldir are rewritten in place by the driver
-shape_ProduceLimitsForDifferentEtaCategory.py.
+--signal, --splitEta, --onlyEta1 and the hardcoded regionBckg and optionlabel
+settings must be the same as in CreateDatacards.py: the directory names
+are rebuilt here from the same rules. optionlabel is rewritten in place by the
+driver ProduceLimitsForDifferentEtaCategory.py.
 
-With blinded datacards (the default of shape_createDatacard.py) data_obs is
+With blinded datacards (the default of CreateDatacards.py) data_obs is
 the background prediction, so the "observed" limit of the output tree is not
 a limit on real data.
 
 All mass points are processed even if Combine fails for some of them; the
 script then exits with an error listing the failed mass points.
 
-The expected significance is computed by shape_significance.py.
+The expected significance is computed by Significance.py.
 
 Usage:
-    python3 shape_runDatacard.py                        # gluino, full tracker, shape
-    python3 shape_runDatacard.py --cac --signal stau    # cut-and-count, stau
-    # the next two need etalabeldir set as in shape_createDatacard.py
-    python3 shape_runDatacard.py --onlyEta1             # central region only
-    python3 shape_runDatacard.py --splitEta             # two eta categories
+    python3 RunDatacards.py                        # gluino, full tracker, shape
+    python3 RunDatacards.py --splitEta             # two eta categories
+    python3 RunDatacards.py --onlyEta1             # central region only
+    python3 RunDatacards.py --cac --signal stau    # cut-and-count, stau
 """
 
 from optparse import OptionParser
@@ -78,13 +76,12 @@ signalType    = options.signal
 ## CONFIGURATION
 # ---------------------------------------------------------------------------
 # Must match the settings of the datacard generation script.
-# optionlabel and etalabeldir are rewritten in place by the driver
-# shape_ProduceLimitsForDifferentEtaCategory.py, which looks for one-line,
-# single-quoted assignments: keep that form, and a single assignment of each
-# in this file.
+# optionlabel is rewritten in place by the driver
+# ProduceLimitsForDifferentEtaCategory.py, which looks for a one-line,
+# single-quoted assignment: keep that form, and a single assignment in this
+# file.
 regionBckg  = '9fp10'
 optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
-etalabeldir = 'Eta2p4'
 
 # Roots of the input (datacards) and output (Combine results) trees: the
 # Datacards/ and Limits/ directories next to this script
@@ -132,7 +129,7 @@ if __name__ == '__main__':
 
     # Same eta label logic as in the generation script
     if splitEta:
-        etaLabel = 'split_Eta1_' + etalabeldir
+        etaLabel = 'split_Eta1_Eta1_2p4'
     elif onlyEta1:
         etaLabel = 'Eta1'
     else:

@@ -1,121 +1,99 @@
 # LimitComputation_MassSpectrum
-This repositery is dedicated to HSCP analysis, for the limits computation with the mass spectrum approach. 
 
-## Setup working area
+Statistical interpretation of the CMS Run 3 search for Heavy Stable Charged
+Particles (HSCP) with the mass-spectrum approach: Combine datacards, expected
+limits, significance and fit diagnostics for gluino, stop and stau signals,
+on the 2024 data (109 fb^-1 at 13.6 TeV).
 
-```bash
-export SCRAM_ARCH=slc7_amd64_gcc700
-cmsrel CMSSW_11_3_4
-cd CMSSW_11_3_4/src/
-cmsenv
-```
+The code derives from the Run 2 package
+(https://github.com/dapparu/LimitComputation_MassSpectrum); only the Run 3
+chain, made of the `shape_*.py` scripts, is kept here.
 
-For the following step you should have a ssh key associated to your GitHub account.
-For more information, see [connecting-to-github-with-ssh-key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
+## Requirements
 
-```bash
-git clone https://github.com/DenkMybu/LimitComputation_MassSpectrum.git LimitComputation_MassSpectrum 
-``` 
+- A CMSSW area with Combine (`combine`, `text2workspace.py`) and
+  CombineHarvester (`combineTool.py`, `plotImpacts.py`), after `cmsenv`:
+  - https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/
+  - https://cms-analysis.github.io/CombineHarvester/
+- Python 3 with PyROOT, numpy and matplotlib.
 
-## Install the Combine packages and setup
+The scripts can be launched from any directory: they read and write the
+`Datacards/`, `Limits/` and `Results/` directories located next to them.
 
-```bash
-git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
-cd HiggsAnalysis/CombinedLimit
-```
+## Inputs
 
-Update to a recommended tag - currently the recommended tag is v9.1.0
-More information on: https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/ 
+Only `CreateDatacards.py` reads the analysis inputs. Their locations are
+hardcoded at the top of that script and must be adapted:
 
-```bash
-cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
-git fetch origin
-git checkout v9.1.0
-scramv1 b clean; scramv1 b # always make a clean build
-```
+- `BASE_SIGNAL_DIR`: signal mass histograms, one file per mass point
+  (see `SIGNAL_CONFIG` for the file names and mass points);
+- `BASE_BKG_DIR`: background prediction, one file per systematic variation,
+  named `JetMET2024_V<version>_<eta><option>_<variation>.root`
+  (see `BKG_FILE_SUFFIX`).
 
-Then install Combine Harvester package. 
-More information on: https://cms-analysis.github.io/CombineHarvester/ 
+## Configurations
 
-```bash
-cd CMSSW_11_3_4/src
-cmsenv
-git clone https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
-git checkout v2.0.0
-scram b
-```
+| Choice | Values |
+|---|---|
+| Signal (`--signal`) | `gluino` (default), `stop`, `stau` |
+| Eta configuration | full tracker \|eta\|<2.4 (default), central region \|eta\|<1 (`--onlyEta1`), two categories \|eta\|<1 and 1<=\|eta\|<2.4 (`--splitEta`) |
+| Method | shape analysis of the mass spectrum (default), cut-and-count in a mass window (`--cac`) |
+| Background-prediction option | `optionlabel`: `SigmaPtoverPt_0p5_EoP_0p1_v2` (default) or `v2` |
 
-Create ```HSCPLimit``` repository:
+## Main chain
+
+`ProduceLimitsForDifferentEtaCategory.py` runs the three steps below for
+every option, method, eta configuration and signal:
 
 ```bash
-mkdir HSCPLimit
-cd HSCPLimit
-```
-And finally install HSCP scripts: 
-
-```bash 
-git clone git@github.com:dapparu/LimitComputation_MassSpectrum.git LimitComputation_MassSpectrum
-cd LimitComputation_MassSpectrum
+python3 ProduceLimitsForDifferentEtaCategory.py              # everything
+python3 ProduceLimitsForDifferentEtaCategory.py --dryRun     # print the commands only
+python3 ProduceLimitsForDifferentEtaCategory.py --signal stau --steps draw
+python3 ProduceLimitsForDifferentEtaCategory.py --optionLabel v2
 ```
 
-## Import the cross-sections
+| Step | Script | Output |
+|---|---|---|
+| `gen` | `CreateDatacards.py` | `Datacards/<signal>/shape_<region>_<etaLabel>_<optionlabel>/`: datacards, shape ROOT files, yield table |
+| `run` | `RunDatacards.py` | `Limits/<signal>/limit_shape_<region>_<etaLabel>[_cutandcount]_<optionlabel>/`: Combine AsymptoticLimits trees |
+| `draw` | `DrawDatacards.py` | limit plot (`.pdf`) and table (`.txt`), in the same directory |
 
-The cross-section are already loaded in the directory ```xsec```. 
-More information on: https://github.com/fuenfundachtzig/xsec
+Each script can also be run on its own, with the same flags (`--signal`,
+`--splitEta`, `--onlyEta1`, `--cac`). In these three scripts the
+background-prediction option is the hardcoded `optionlabel` setting, which the
+driver rewrites in place while it runs (and restores afterwards).
 
-## Create the datacards
+## Other scripts
 
-This part aims to create the datacards for each signal hypotheses. 
+They are run by hand, after the datacards (and, for the first one, the limit
+tables) have been produced. `--optionLabel` selects the background-prediction
+option.
 
-Use the script ```create_datacards.py```:
+| Script | Purpose |
+|---|---|
+| `DrawCompareSignal.py` | summary plot per signal: expected limits of the three eta configurations, Run 2 observed limit and theoretical cross sections; written to `Results/` |
+| `Significance.py` | expected significance versus mass |
+| `NuisanceImpactParameter.py` | nuisance parameter impacts (uses `plotImpactsPrivate.py`, a wrapper around the `plotImpacts.py` of Combine) |
+| `CorrelationMatrix.py` | correlation matrix of the nuisance parameters, from FitDiagnostics |
 
-```bash
-python create_datacards.py
-```
+The docstring at the top of each script describes its inputs, outputs and
+options; `--help` lists the options.
 
-Set the variable ```regionSignal``` to ```'SR1'```, ```'SR2'``` or ```'SR3'``` depending on what you want. 
-Set the variables ```pathSignal``` and ```pathPred``` to open signal and predict mass distributions. The datacards are created for a whole bunch of different signal hypotheses and use the different predicted mass shapes due to systematics. 
-Set the output directory with the variable ```outDataCardsDir```.
-Setting the variable ```systSignal``` one will produce systematics budget for a given signal hypothesis, as a function of target masses (so systematics budget within the mass windows).
+## Blinding
 
-The bias correction parameters are currently hard-coded for each signal regions in both year. Be sure to update the values obtained with the package ```massSpectrum_bckgPrediction```, especially using the ```macroMass.py``` script (see: https://github.com/dapparu/massSpectrum_bckgPrediction). 
+By default nothing uses the observed data: the datacards are written with the
+background prediction in place of the data, and the significance, impact and
+correlation studies run on Asimov datasets.
 
-## Run Combine on the datacards
+`--unblind` switches to the observed data. In `CreateDatacards.py` it
+writes the observed mass spectrum in the datacards; in `DrawDatacards.py`
+it draws the observed limit. The driver passes it to both steps. Blinded and
+unblinded results are written to the same directories and overwrite each
+other, so the three steps must be redone together when the blinding changes.
 
-This part gives the way to run Combine limits and Combine significance on the previously produced datacards. 
+## Other files
 
-Use the script ```run_datacards.py```:
-
-```bash
-python run_datacards.py
-```
-
-Set the ```input_dir``` and the ```tree_dir``` variables. The input directory of this code is the output directory of the previous stage.
-
-By default, the code run the ```AsymptoticLimits``` and ```Significance``` methods, in parallel.
-
-All the results are saved in the ```tree_dir``` directory.
-
-## Produce the limits plots 
-
-One uses the ```limit_plots.py``` script to produce limits plots:
-
-```bash
-python limit_plots.py
-```
-
-Set the ```labelSignal``` variable to extract limits on a given signal hypothesis. The supported hypothesis are the commented ones. 
-
-The results are saved on the ```limit_plots_dir``` directory. 
-
-## Significance computation
-
-Work in progress... 
-
-## Signal injection tests
-
-Work in progress... 
-
-## Mass shape analysis
-
-Work in progress... 
+- `tdrstyle.py`: CMS plotting style used by `Significance.py`.
+- `xsec/`: reference material that is not read by the scripts: SUSY cross
+  sections at 13 TeV (from https://github.com/fuenfundachtzig/xsec) and the
+  HEPData record of the Run 2 limits (EXO-18-002).
