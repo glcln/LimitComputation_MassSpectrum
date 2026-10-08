@@ -1,3 +1,6 @@
-Datacards/
-Limits/
-Results/
+/Datacards/*
+!/Datacards/.gitkeep
+/Limits/*
+!/Limits/.gitkeep
+/Results/*
+!/Results/.gitkeep

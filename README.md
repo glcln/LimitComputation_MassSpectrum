@@ -5,9 +5,9 @@ Particles (HSCP) with the mass-spectrum approach: Combine datacards, expected
 limits, significance and fit diagnostics for gluino, stop and stau signals,
 on the 2024 data (109 fb^-1 at 13.6 TeV).
 
-The code derives from the Run 2 package
-(https://github.com/dapparu/LimitComputation_MassSpectrum); only the Run 3
-chain, made of the `shape_*.py` scripts, is kept here.
+## Disclaimer
+
+I wrote all the code in this project myself. However, this README and the comments in the scripts were generated using Claude.
 
 ## Requirements
 
@@ -94,6 +94,8 @@ other, so the three steps must be redone together when the blinding changes.
 ## Other files
 
 - `tdrstyle.py`: CMS plotting style used by `Significance.py`.
-- `xsec/`: reference material that is not read by the scripts: SUSY cross
-  sections at 13 TeV (from https://github.com/fuenfundachtzig/xsec) and the
-  HEPData record of the Run 2 limits (EXO-18-002).
+- `xsec/`: reference material that is not read by the scripts:
+  `HSCP_xsec_13TeV.json`, the 13 TeV cross sections of the HSCP signals
+  (theoretical predictions from https://github.com/fuenfundachtzig/xsec and
+  the values used for the Run 2 signal samples), and the HEPData record of the
+  Run 2 limits (EXO-18-002).

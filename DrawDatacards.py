@@ -115,7 +115,7 @@ debug         = options.debug
 # single-quoted assignment: keep that form, and a single assignment in this
 # file.
 regionBckg  = '9fp10'
-optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
+optionlabel = 'v2'
 
 # Root of the Combine results: the Limits/ directory next to this script
 LIMITS_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Limits')

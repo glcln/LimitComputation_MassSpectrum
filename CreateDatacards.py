@@ -112,8 +112,8 @@ channel     = 'Ch2024'    # base name of the Combine bins
 #                        and output directory names
 #   optionlabelForFile : the same option as it appears in the file and
 #                        histogram names ('' when there is none)
-optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
-optionlabelForFile = '_SigmaPtoverPt_0p5_EoP_0p1'
+optionlabel = 'v2'
+optionlabelForFile = ''
 
 # Root of the output tree, <DATACARDS_BASE>/<signal>/shape_<...>/: the
 # Datacards/ directory next to this script

@@ -81,7 +81,7 @@ signalType    = options.signal
 # single-quoted assignment: keep that form, and a single assignment in this
 # file.
 regionBckg  = '9fp10'
-optionlabel = 'SigmaPtoverPt_0p5_EoP_0p1_v2'
+optionlabel = 'v2'
 
 # Roots of the input (datacards) and output (Combine results) trees: the
 # Datacards/ and Limits/ directories next to this script
