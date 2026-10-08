@@ -95,7 +95,10 @@ other, so the three steps must be redone together when the blinding changes.
 
 - `tdrstyle.py`: CMS plotting style used by `Significance.py`.
 - `xsec/`: reference material that is not read by the scripts:
-  `HSCP_xsec_13TeV.json`, the 13 TeV cross sections of the HSCP signals
-  (theoretical predictions from https://github.com/fuenfundachtzig/xsec and
-  the values used for the Run 2 signal samples), and the HEPData record of the
-  Run 2 limits (EXO-18-002).
+  - `HSCP_xsec_13TeV.json`: 13 TeV cross sections of the HSCP signals
+    (theoretical predictions from https://github.com/fuenfundachtzig/xsec and
+    the values used for the Run 2 signal samples);
+  - `HSCP_xsec_13p6TeV.json`: 13.6 TeV cross sections (theoretical predictions
+    from the same repository, values used for the Run 3 signal mass points,
+    2024 MC samples);
+  - `EXO-18-002__lt_gluino_massMethod.json`: HEPData record of the Run 2 limits.
