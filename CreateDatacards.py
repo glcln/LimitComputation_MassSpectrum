@@ -45,7 +45,7 @@ that line.
 All analysis settings are hardcoded in the CONFIGURATION section below. The
 optionlabel and optionlabelForFile settings are rewritten in place by the
 driver shape_ProduceLimitsForDifferentEtaCategory.py. regionBckg and
-optionlabel must have the same values in shape_runDatacard.py and
+optionlabel must have the same values in RunDatacards and
 shape_drawDatacard.py, which rebuild the directory names from them.
 
 Usage:
@@ -131,7 +131,7 @@ BASE_BKG_DIR = '/safe/ui3_1/cms/gcoulon/CMSSW_15_0_13_patch1/src/TupleAnalysis/m
 #   version : version tag of the signal files
 #   label   : prefix of the Combine sample name, '<label><mass>_2024'
 #   masses  : mass points [GeV]
-# shape_runDatacard.py runs on the datacards it finds, so it holds no copy of
+# RunDatacards runs on the datacards it finds, so it holds no copy of
 # these lists.
 SIGNAL_CONFIG = {
     'gluino': {

@@ -1,5 +1,5 @@
 """
-Plot the cross-section upper limits obtained by shape_runDatacard.py.
+Plot the cross-section upper limits obtained by RunDatacards.
 
 For one signal model (gluino, stop or stau) and one eta configuration, the
 script reads the Combine AsymptoticLimits tree of each mass point, converts
@@ -30,7 +30,7 @@ LIMITS_BASE is the Limits/ directory next to this script.
 
 --signal, --cac, --splitEta, --onlyEta1 and the hardcoded regionBckg and
 optionlabel settings must be the same as in CreateDatacards.py and
-shape_runDatacard.py: the directory names are rebuilt here from the same
+RunDatacards: the directory names are rebuilt here from the same
 rules. optionlabel is rewritten in place by the driver
 shape_ProduceLimitsForDifferentEtaCategory.py.
 
